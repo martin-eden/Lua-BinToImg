@@ -20,9 +20,9 @@ InputFileName=$1
 # InputFileName=/usr/bin/perl
 # InputFileName=/usr/bin/python3
 # InputFileName=/usr/bin/avrdude
+
 OutputFileName=Image.pnm
 
-OurDirName=SurfaceFillingCurve
 OutputFileName_Png=Image.png
 
 #
