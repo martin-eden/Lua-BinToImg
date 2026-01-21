@@ -1,0 +1,20 @@
+I have vision now
+
+Here is PNM codec. It's two functions: one for load, other for save.
+
+Load receives data stream, returns image-based data and settings table.
+Save receives image-based data and settings table, writes to output stream. [1]
+
+Image-based data is some custom encoding from [Image].
+Likely based on color channels normalized to unit [0.0, 1.0].
+
+
+[1]: Stream, not string
+
+  Stream is the base. String is actually stream when you're implementing it.
+
+  DS3231 codec uses string (unlike Itness codec).
+
+  That's because DS3231 data is fixed-length structure (and just 12 bytes).
+
+  Here we're dealing with variable-length context-based data. Stream.

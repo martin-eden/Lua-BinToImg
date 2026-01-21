@@ -2,13 +2,13 @@
 
 (2026-01)
 
-Converts binary file to grayscale PNG image.
+Converts any binary file to grayscale PNG image.
 
 No data is lost, that's byte-to-pixel conversion.
 
 Lua executable as image:
 
-![Lua executable][LuaCode]
+![Lua executable][lua_code_img]
 
 
 ## Requirements
@@ -20,20 +20,22 @@ Lua executable as image:
 
 ## Install/remove
 
-* Clone
+* Copy files from [`bin/`][bin]
 
 
 ## Usage
 
-`$ BinToImg.sh <InputFileName>`
+`$ bin_to_png.sh <input_file>`
 
 It reads given file and writes PNG image to current directory.
-For implementation details see [`BinToImg.sh`][BinToImg].
+Result file name is original name with added `.png` extension.
 
 
-## Notes
+## Details
 
-* That's a one-evening project.
+[Shell script][bin_to_png] wraps my Lua tool that converts any binary
+file to image in PNM format (text format). Then it calls `pnmtopng`
+tool to convert it to PNG.
 
 * Implementation uses spiral filling. For spiral filling I wrote ["ant"][Ant]
 class and coded spiral logic for that ant.
@@ -43,14 +45,21 @@ class and coded spiral logic for that ant.
 * Distribution format is standalone frontend scripts and packed Lua
 backend. Current version of my personal Lua framework is available [here][workshop].
 
+* [`build.sh`][build_sh] creates combined Lua file in `bin/`.
+  It uses my "meld" tool for that.
 
 ## See also
 
+* [`meld`][meld] -- my tool to combine Lua files
+* [`workshop`][workshop] -- my personal Lua framework
 * [My other projects][contents]
 
+[lua_code_img]: extras/Lua.png
+[bin]: bin/
+[bin_to_png]: src/bin_to_png.sh
+[Ant]: src/BlindAnt/Interface.lua
+[build_sh]: build/build.sh
 
-[BinToImg]: BinToImg.sh
-[Ant]: BlindAnt/Interface.lua
-[LuaCode]: Images/Lua.png
+[meld]: https://github.com/martin-eden/lua_code_melder
 [workshop]: https://github.com/martin-eden/workshop
 [contents]: https://github.com/martin-eden/contents
