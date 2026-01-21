@@ -36,12 +36,12 @@ For implementation details see [`BinToImg.sh`][BinToImg].
 * That's a one-evening project.
 
 * Implementation uses spiral filling. For spiral filling I wrote ["ant"][Ant]
-class and coded spiral logic that ant.
+class and coded spiral logic for that ant.
 
 * Feel free to experiment with another filling algorithms.
 
 * Distribution format is standalone frontend scripts and packed Lua
-backend. Current version of my personal Lua framework available [here][workshop].
+backend. Current version of my personal Lua framework is available [here][workshop].
 
 
 ## See also
