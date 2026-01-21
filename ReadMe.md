@@ -4,9 +4,10 @@
 
 Converts binary file to grayscale PNG image.
 
-No data is lost, that's byte-for-pixel conversion.
+No data is lost, that's byte-to-pixel conversion.
 
 Lua executable as image:
+
 ![Lua executable][LuaCode]
 
 
