@@ -60,6 +60,7 @@ format and then converts it to `.png` using `pnmtopng` tool.
 
 ## See also
 
+* [Netpbm codec][Lua-Ppm] -- codec's repo
 * [`meld`][meld] -- my tool to combine Lua files
 * [`workshop`][workshop] -- my personal Lua framework
 * [My other projects][contents]
@@ -76,6 +77,7 @@ format and then converts it to `.png` using `pnmtopng` tool.
 [Ant]: src/BlindAnt/Interface.lua
 [build_sh]: build/build.sh
 
+[Lua-Ppm]: https://github.com/martin-eden/Lua-Ppm
 [meld]: https://github.com/martin-eden/lua_code_melder
 [workshop]: https://github.com/martin-eden/workshop
 [contents]: https://github.com/martin-eden/contents
