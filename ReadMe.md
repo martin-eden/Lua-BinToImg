@@ -1,3 +1,5 @@
+[![DeepWiki][DeepWiki_Logo]][DeepWiki_Repo] (sometimes AI explains it better)
+
 ## What
 
 | Created | Updated | Code size |
@@ -62,6 +64,9 @@ format and then converts it to `.png` using `pnmtopng` tool.
 * [`workshop`][workshop] -- my personal Lua framework
 * [My other projects][contents]
 
+
+[DeepWiki_Logo]: https://deepwiki.com/badge.svg
+[DeepWiki_Repo]: https://deepwiki.com/martin-eden/Lua-BinToImg
 
 [lua_code_img]: extras/Lua.png
 [bin_to_ppm_img]: extras/bin_to_ppm.png
