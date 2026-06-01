@@ -1,6 +1,8 @@
 ## What
 
-(2026-01)
+| Created | Updated | Code size |
+|:-------:|:-------:| :-------: |
+| 2026-01 | 2026-06 |  < 25 K   |
 
 Converts any binary file to grayscale PNG image.
 
