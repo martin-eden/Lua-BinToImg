@@ -13,9 +13,9 @@ Lua executable as image:
 
 ## Requirements
 
-* Bash
-* Lua 5.3 (5.4, 5.5)
-* `libnetpbm` toolset to convert image to PNG
+* Bash (use Linux)
+* Lua 5.3 (5.4, 5.5) (`$ sudo apt install lua`)
+* `libnetpbm` toolset to convert image to PNG (`$ sudo apt install netpbm`)
 
 
 ## Install/remove
