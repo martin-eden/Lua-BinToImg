@@ -12,6 +12,10 @@ Lua executable as image:
 
 ![Lua executable][lua_code_img]
 
+Tool executable as image:
+
+![Tool executable][bin_to_ppm_img]
+
 
 ## Usage
 
@@ -60,6 +64,8 @@ format and then converts it to `.png` using `pnmtopng` tool.
 
 
 [lua_code_img]: extras/Lua.png
+[bin_to_ppm_img]: extras/bin_to_ppm.png
+
 [bin]: bin/
 [bin_to_png]: bin/bin_to_png.sh
 [Ant]: src/BlindAnt/Interface.lua
