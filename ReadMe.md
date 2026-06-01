@@ -13,11 +13,22 @@ Lua executable as image:
 ![Lua executable][lua_code_img]
 
 
+## Usage
+
+`$ bin_to_png.sh <input_file>`
+
+Reads given file and writes PNG image to current directory.
+Result file name is original name with added `.png` extension.
+
+This [Bash wrapper][bin_to_png] calls Lua file to create image in `.ppm`
+format and then converts it to `.png` using `pnmtopng` tool.
+
+
 ## Requirements
 
 * Bash (use Linux)
 * Lua 5.3 (5.4, 5.5) (`$ sudo apt install lua`)
-* `libnetpbm` toolset to convert image to PNG (`$ sudo apt install netpbm`)
+* `pnmtopng` tool to convert image to PNG (`$ sudo apt install netpbm`)
 
 
 ## Install/remove
@@ -25,30 +36,21 @@ Lua executable as image:
 * Copy files from [`bin/`][bin]
 
 
-## Usage
-
-`$ bin_to_png.sh <input_file>`
-
-It reads given file and writes PNG image to current directory.
-Result file name is original name with added `.png` extension.
-
-
 ## Details
 
-[Shell script][bin_to_png] wraps my Lua tool that converts any binary
-file to image in PNM format (text format). Then it calls `pnmtopng`
-tool to convert it to PNG.
+* Implementation uses spiral filling
 
-* Implementation uses spiral filling. For spiral filling I wrote ["ant"][Ant]
-class and coded spiral logic for that ant.
+  For spiral filling I wrote ["ant"][Ant] class and coded spiral
+  movement for that ant.
 
-* Feel free to experiment with another filling algorithms.
+* Feel free to experiment with another filling algorithms
 
-* Distribution format is standalone frontend scripts and packed Lua
-backend. Current version of my personal Lua framework is available [here][workshop].
+* [`build.sh`][build_sh] creates combined and compiled Lua file in `bin/`.
+  It uses my `meld` tool for that
 
-* [`build.sh`][build_sh] creates combined Lua file in `bin/`.
-  It uses my "meld" tool for that.
+  You can use it to recompile to another Lua version. But you'll need
+  full `workshop` repo near current date (2026-06-01) to recompile.
+
 
 ## See also
 
@@ -56,9 +58,10 @@ backend. Current version of my personal Lua framework is available [here][worksh
 * [`workshop`][workshop] -- my personal Lua framework
 * [My other projects][contents]
 
+
 [lua_code_img]: extras/Lua.png
 [bin]: bin/
-[bin_to_png]: src/bin_to_png.sh
+[bin_to_png]: bin/bin_to_png.sh
 [Ant]: src/BlindAnt/Interface.lua
 [build_sh]: build/build.sh
 
