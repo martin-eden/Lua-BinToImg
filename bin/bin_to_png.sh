@@ -2,7 +2,7 @@
 
 #
 # Author: Martin Eden
-# Last mod.: 2026-06-01
+# Last mod.: 2026-06-03
 #
 
 #
@@ -37,7 +37,7 @@ input_file=$1
 output_file_ppm="${input_file}.ppm"
 output_file_png="${input_file}.png"
 
-./bin_to_ppm $input_file > $output_file_ppm
+bin_to_ppm $input_file > $output_file_ppm
 
 pnmtopng $output_file_ppm > $output_file_png
 
