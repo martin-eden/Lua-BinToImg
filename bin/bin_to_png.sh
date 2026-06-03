@@ -32,16 +32,16 @@ if [ $# -eq 0 ]; then
   exit 0
 fi
 
-input_file=$1
+input_file="$1"
 
 output_file_ppm="${input_file}.ppm"
 output_file_png="${input_file}.png"
 
-bin_to_ppm $input_file > $output_file_ppm
+bin_to_ppm "$input_file" > "$output_file_ppm"
 
-pnmtopng $output_file_ppm > $output_file_png
+pnmtopng "$output_file_ppm" > "$output_file_png"
 
-rm $output_file_ppm
+rm "$output_file_ppm"
 
 # 2026-01-21
 # 2026-05-30
