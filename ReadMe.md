@@ -24,7 +24,7 @@ Tool executable as image:
 `$ bin_to_png.sh <input_file>`
 
 Reads given file and writes PNG image to current directory.
-Result file name is original name with added `.png` extension.
+Creates file with name of original name and `.png` extension.
 
 This [Bash wrapper][bin_to_png] calls Lua file to create image in `.ppm`
 format and then converts it to `.png` using `pnmtopng` tool.
