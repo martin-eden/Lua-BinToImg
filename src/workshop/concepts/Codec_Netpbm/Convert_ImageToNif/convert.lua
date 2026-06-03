@@ -2,7 +2,7 @@
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-06-01
+  Last mod.: 2026-06-03
 ]]
 
 --[[
@@ -21,7 +21,7 @@
           [2] = { [1] = { 0.5, 1.0, 0.0 } },
         },
     }
-    ->
+                  ->
     {
       width = 1,
       height = 2,
@@ -32,7 +32,6 @@
       [1] = { [1] = { 0, 128, 255 } },
       [2] = { [1] = { 128, 255, 0 } },
     }
-
 ]]
 
 -- Imports:
@@ -64,15 +63,11 @@ local get_nif_color =
 
     denormalize_color(NifColor)
 
-    local Result = { }
-
     for _, color_component in ipairs(NifColor) do
       assert(number_in_range(color_component, 0, max_color_value))
-
-      add_to_list(Result, string.format('%03d', color_component))
     end
 
-    return Result
+    return NifColor
   end
 
 local convert =
@@ -119,4 +114,5 @@ return convert
   2026-01-13
   2026-05-31
   2026-06-01
+  2026-06-03
 ]]
