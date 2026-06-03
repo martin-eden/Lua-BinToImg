@@ -42,6 +42,16 @@ format and then converts it to `.png` using `pnmtopng` tool.
 * Copy files from [`bin/`][bin]
 
 
+## Notes
+
+* Compiled binary uses Lua 5.3
+
+* Practical file size is several megabytes
+
+  I've tested it on 32 MB file. It took 10 minutes, ate 32 GB memory and
+  produced square image with 6 K pixels on sides.
+
+
 ## Details
 
 * Implementation uses spiral filling
