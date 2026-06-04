@@ -2,74 +2,58 @@
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-06-01
+  Last mod.: 2026-06-04
 ]]
 
-local TurnLeft =
-  function(Me)
-    local direction = Me.direction
-
-    if (direction == 4) then
-      direction = 1
-    else
-      direction = direction + 1
-    end
-
-    Me.direction = direction
-  end
-
-local TurnRight =
-  function(Me)
-    local direction = Me.direction
-
-    if (direction == 1) then
-      direction = 4
-    else
-      direction = direction - 1
-    end
-
-    Me.direction = direction
-  end
-
-local UpdateTrace =
-  function(Me)
-    table.insert(Me.Trace, new(Me.Position))
-  end
-
-local Step =
-  function(Me)
-    for i = 1, #Me.Position do
-      Me.Position[i] = Me.Position[i] + Me.Directions[Me.direction][i]
-    end
-    Me:UpdateTrace()
-  end
-
-local GetTrace =
-  function(Me)
-    return new(Me.Trace)
-  end
+local Directions =
+  {
+    { 1, 0 },
+    { 0, 1 },
+    { -1, 0 },
+    { 0, -1 },
+  }
 
 local Interface =
   {
-    -- [Main]
-    TurnLeft = TurnLeft,
-    TurnRight = TurnRight,
-    Step = Step,
+    -- [Methods]
+    Step =
+      function(Me)
+        for i = 1, #Me.Position do
+          Me.Position[i] = Me.Position[i] + Directions[Me.direction][i]
+        end
+        table.insert(Me.Trace, new(Me.Position))
+      end,
 
-    GetTrace = GetTrace,
+    TurnLeft =
+      function(Me)
+        local direction = Me.direction
 
-    -- [Internal]
-    Directions =
-      {
-        { 1, 0 },
-        { 0, 1 },
-        { -1, 0 },
-        { 0, -1 },
-      },
+        if (direction == 4) then
+          direction = 1
+        else
+          direction = direction + 1
+        end
+
+        Me.direction = direction
+      end,
+
+    TurnRight =
+      function(Me)
+        local direction = Me.direction
+
+        if (direction == 1) then
+          direction = 4
+        else
+          direction = direction - 1
+        end
+
+        Me.direction = direction
+      end,
+
+    -- [State]
     direction = 1,
     Position = { 0, 0 },
     Trace = { { 0, 0 } },
-    UpdateTrace = UpdateTrace,
   }
 
 -- Export:
@@ -78,4 +62,5 @@ return Interface
 --[[
   2026-01-21
   2026-06-01
+  2026-06-04
 ]]
