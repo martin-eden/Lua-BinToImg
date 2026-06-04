@@ -14,14 +14,16 @@ Lua executable as image:
 
 ![Lua executable][lua_code_img]
 
-Tool executable as image:
+Compiled tool code as image:
 
 ![Tool executable][bin_to_ppm_img]
 
 
 ## Usage
 
-`$ bin_to_png.sh <input_file>`
+```
+$ bin_to_png.sh <input_file>
+```
 
 Reads given file and writes PNG image to current directory.
 Creates file with name of original name and `.png` extension.
@@ -44,12 +46,19 @@ format and then converts it to `.png` using `pnmtopng` tool.
 
 ## Notes
 
-* Compiled binary uses Lua 5.3
+* Binary is compiled using Lua 5.3
 
-* Practical file size is several megabytes
+* Practical data file size is several megabytes
 
-  I've tested it on 32 MB file. It took 10 minutes, ate 32 GB memory and
-  produced square image with 6 K pixels on sides.
+  I've tested it on 32 MB file.
+
+* This is data exploration tool
+
+  You can grasp data structure from image. You can feel size
+  relationships from two images.
+
+  Tool value diminishes with data size.
+  It is not designed to be fast or efficient for large files.
 
 
 ## Details
