@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #
-# Combines all Lua sources into one executable file.
+# Create Lua executable file from sources. Create images for Readme.
 #
 # Author: Martin Eden
-# Last mod.: 2026-06-01
+# Last mod.: 2026-06-06
 #
 
 #
@@ -45,5 +45,10 @@ rm bin_to_ppm.combined.luac
 mv bin_to_ppm.combined.shebang.luac bin_to_ppm
 
 chmod +x bin_to_ppm
+
+cd ../build
+
+# Create images used in "Readme.md"
+./create_readmes_images.sh
 
 # 2026-06-01
