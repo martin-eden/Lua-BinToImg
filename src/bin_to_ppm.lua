@@ -2,7 +2,7 @@
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-06-04
+  Last mod.: 2026-06-15
 ]]
 
 --[[ Develop
@@ -20,7 +20,7 @@ local file_to_str = request('!.convert.file_to_str')
 local Ant = request('BlindAnt.Interface')
 local Image = request('!.concepts.Image.Interface')
 local StdOut = request('!.concepts.StreamIo.Output.Pipe')
-local save_image = request('!.concepts.Codec_Netpbm.compile')
+local save_image = request('!.concepts.codec_netpbm.compile')
 
 local help_text = [[
 Converts file to image in PPM text format
