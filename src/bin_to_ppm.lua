@@ -17,7 +17,7 @@ local Config =
 
 -- Imports:
 local file_to_str = request('!.convert.file_to_str')
-local Ant = request('BlindAnt.Interface')
+local Ant = request('TracedAnt.Interface')
 local Image = request('!.concepts.Image.Interface')
 local StdOut = request('!.concepts.StreamIo.Output.Pipe')
 local save_image = request('!.concepts.codec_netpbm.compile')

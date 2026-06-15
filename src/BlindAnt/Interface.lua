@@ -5,9 +5,6 @@
   Last mod.: 2026-06-15
 ]]
 
--- Imports:
-local add_to_list = request('!.concepts.list.add_item')
-
 local Directions =
   {
     { 1, 0 },
@@ -26,8 +23,6 @@ local Interface =
         for i = 1, #Me.Position do
           Me.Position[i] = Me.Position[i] + Direction[i]
         end
-
-        add_to_list(Me.Trace, new(Me.Position))
       end,
 
     TurnLeft =
@@ -55,7 +50,6 @@ local Interface =
     -- [State]
     direction = 1,
     Position = { 0, 0 },
-    Trace = { { 0, 0 } },
   }
 
 -- Export:
