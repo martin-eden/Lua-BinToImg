@@ -4,7 +4,7 @@
 
 | Created | Updated | Code size | License |
 |:-------:|:-------:|:---------:|:-------:|
-| 2026-01 | 2026-06 |  < 25 K   |  LGPL3  |
+| 2026-01 | 2026-08 |  < 50 K   |  LGPL3  |
 
 Converts any binary file to grayscale PNG image.
 
@@ -14,7 +14,7 @@ Lua executable as image:
 
 ![Lua executable][lua_code_img]
 
-Compiled tool code as image:
+Combined tool code as image:
 
 ![Tool executable][bin_to_ppm_img]
 
@@ -41,12 +41,10 @@ format and then converts it to `.png` using `pnmtopng` tool.
 
 ## Install/remove
 
-* Copy files from [`bin/`][bin]
+* Copy files from [`deploy/`][deploy]
 
 
 ## Notes
-
-* Binary is compiled using Lua 5.3
 
 * Practical data file size is several megabytes
 
@@ -70,7 +68,7 @@ format and then converts it to `.png` using `pnmtopng` tool.
 
 * Feel free to experiment with another filling algorithms
 
-* [`build.sh`][build_sh] creates combined and compiled Lua file in `bin/`.
+* [`build.sh`][build_sh] creates combined and compiled Lua file in `deploy/`.
   It uses my `meld` tool for that
 
   You can use it to recompile to another Lua version. But you'll need
@@ -91,7 +89,7 @@ format and then converts it to `.png` using `pnmtopng` tool.
 [lua_code_img]: extras/Lua.png
 [bin_to_ppm_img]: extras/bin_to_ppm.png
 
-[bin]: bin/
+[deploy]: deploy/
 [bin_to_png]: bin/bin_to_png.sh
 [Ant]: src/BlindAnt/Interface.lua
 [build_sh]: build/build.sh
