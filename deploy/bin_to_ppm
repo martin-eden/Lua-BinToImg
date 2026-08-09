@@ -1,0 +1,1271 @@
+#!/usr/local/bin/lua
+
+_G.package.preload['bin_to_ppm'] =
+  function(...)
+    require('workshop.base')
+    local Config = { input_file_name = arg[1] }
+    local file_to_str = request('!.convert.file_to_str')
+    local Ant = request('TracedAnt.Interface')
+    local Image = request('!.concepts.Image.Interface')
+    local StdOut = request('!.concepts.StreamIo.Output.Pipe')
+    local save_image = request('!.concepts.codec_netpbm.compile')
+    local help_text =
+      [[
+Converts file to image in PPM text format
+
+Usage:
+
+  lua bin_to_ppm <input_file>
+
+-- Martin, 2026-06-04
+]]
+    if is_nil(Config.input_file_name) then
+      print(help_text)
+      return
+    end
+    local get_trace_dims =
+      function(Trace)
+        local Mins = {}
+        local Maxs = {}
+        for i = 1, #Trace[1] do
+          Mins[i] = Trace[1][i]
+          Maxs[i] = Trace[1][i]
+        end
+        for i = 2, #Trace do
+          for j = 1, #Trace[i] do
+            if (Trace[i][j] < Mins[j]) then
+              Mins[j] = Trace[i][j]
+            end
+            if (Trace[i][j] > Maxs[j]) then
+              Maxs[j] = Trace[i][j]
+            end
+          end
+        end
+        local Deltas = {}
+        for i = 1, #Maxs do
+          Deltas[i] = Maxs[i] - Mins[i] + 1
+        end
+        return Mins, Maxs, Deltas
+      end
+    local rebase_trace =
+      function(Trace, Mins)
+        for i = 1, #Trace do
+          for j = 1, #Trace[i] do
+            Trace[i][j] = Trace[i][j] - Mins[j] + 1
+          end
+        end
+      end
+    local move_ant =
+      function(Ant)
+        local stride_length = Ant.State.stride_length
+        local stride_covered = Ant.State.stride_covered
+        local num_turns_done = Ant.State.num_turns_done
+        if (stride_covered == stride_length) then
+          if (num_turns_done == 2) then
+            stride_length = stride_length + 1
+            num_turns_done = 0
+          else
+            Ant:TurnLeft()
+            num_turns_done = num_turns_done + 1
+            stride_covered = 0
+          end
+        end
+        Ant:Step()
+        stride_covered = stride_covered + 1
+        Ant.State.stride_length = stride_length
+        Ant.State.stride_covered = stride_covered
+        Ant.State.num_turns_done = num_turns_done
+      end
+    local str_to_image =
+      function(data_str)
+        local Image = new(Image)
+        local Ant = new(Ant)
+        Image.Settings.ColorFormat = 'gs'
+        Ant.State =
+          { stride_length = 1, stride_covered = 0, num_turns_done = 0 }
+        for i = 1, #data_str - 1 do
+          move_ant(Ant)
+        end
+        local Trace = Ant.Trace
+        do
+          local Mins, Maxs, Deltas = get_trace_dims(Trace)
+          rebase_trace(Trace, Mins)
+          Image.Settings.Width = Deltas[2]
+          Image.Settings.Height = Deltas[1]
+        end
+        for i = 1, #Trace do
+          Image:SetPixel(Trace[i], { string.byte(data_str, i) / 255 })
+        end
+        return Image
+      end
+    do
+      local data_str = file_to_str(Config.input_file_name)
+      local Image = str_to_image(data_str)
+      save_image(Image, StdOut)
+    end
+  end
+_G.package.preload['workshop.base'] =
+  function(...)
+    local split_name =
+      function(qualified_name)
+        local prefix_name_pattern = '^(.+%.)([^%.]+)$'
+        local prefix, name =
+          string.match(qualified_name, prefix_name_pattern)
+        if not prefix then
+          prefix = ''
+          if string.find(qualified_name, '%.') then
+            name = ''
+          else
+            name = qualified_name
+          end
+        end
+        return prefix, name
+      end
+    local unite_prefixes =
+      function(base_prefix, rel_prefix)
+        local uplevel_capture = '(.+%.)[^%.]-%.$'
+        while (string.sub(rel_prefix, 1, 2) == '^.') do
+          if (base_prefix == '') then
+            error("Link is outside of caller's prefix.")
+          end
+          base_prefix = string.match(base_prefix, uplevel_capture) or ''
+          rel_prefix = string.sub(rel_prefix, 3)
+        end
+        return base_prefix .. rel_prefix
+      end
+    local Names = {}
+    local depth = 1
+    local get_caller_prefix =
+      function()
+        local NameRec = Names[depth]
+        if not NameRec then
+          return ''
+        end
+        return NameRec.prefix
+      end
+    local get_caller_name =
+      function()
+        local NameRec = Names[depth]
+        if not NameRec then
+          return 'anonymous'
+        end
+        return NameRec.prefix .. NameRec.name
+      end
+    local push =
+      function(prefix, name)
+        depth = depth + 1
+        Names[depth] = { prefix = prefix, name = name }
+      end
+    local pop =
+      function()
+        depth = depth - 1
+      end
+    local Dependencies_Map = {}
+    local add_dependency =
+      function(src_name, dest_name)
+        Dependencies_Map[src_name] = Dependencies_Map[src_name] or {}
+        Dependencies_Map[src_name][dest_name] = true
+      end
+    local base_prefix = split_name((...))
+    local get_require_name =
+      function(qualified_name)
+        local caller_prefix
+        local is_absolute_name =
+          (string.sub(qualified_name, 1, 2) == '!.')
+        if is_absolute_name then
+          qualified_name = string.sub(qualified_name, 3)
+          caller_prefix = base_prefix
+        else
+          caller_prefix = get_caller_prefix()
+        end
+        local prefix, name = split_name(qualified_name)
+        prefix = unite_prefixes(caller_prefix, prefix)
+        return prefix .. name, prefix, name
+      end
+    local request =
+      function(qualified_name)
+        local src_name = get_caller_name()
+        local require_name, prefix, name =
+          get_require_name(qualified_name)
+        push(prefix, name)
+        local dest_name = get_caller_name()
+        add_dependency(src_name, dest_name)
+        local Results = table.pack(require(require_name))
+        pop()
+        return table.unpack(Results)
+      end
+    local is_first_run = (_G.request == nil)
+    if is_first_run then
+      _G.request = request
+      _G.get_dependencies =
+        function()
+          return Dependencies_Map
+        end
+      _G.get_base_prefix =
+        function()
+          return base_prefix
+        end
+      _G.get_require_name = get_require_name
+      local our_require_name = (...)
+      push('', our_require_name)
+      request('!.system.install_is_functions')()
+      request('!.system.install_assert_functions')()
+      _G.new = request('!.table.new')
+      pop()
+    end
+  end
+_G.package.preload['workshop.system.install_is_functions'] =
+  function(...)
+    local TypeNames = request('!.concepts.lua.TypeNames')
+    local NumberTypeNames = request('!.concepts.lua.NumberTypeNames')
+    local type_is =
+      function(type_name)
+        return
+          function(val)
+            return (type(val) == type_name)
+          end
+      end
+    local number_is =
+      function(type_name)
+        return
+          function(val)
+            if not is_number(val) then
+              return false
+            end
+            return (math.type(val) == type_name)
+          end
+      end
+    local install_is_functions =
+      function()
+        for _, type_name in ipairs(TypeNames) do
+          _G['is_' .. type_name] = type_is(type_name)
+        end
+        for _, math_type_name in ipairs(NumberTypeNames) do
+          _G['is_' .. math_type_name] = number_is(math_type_name)
+        end
+      end
+    return install_is_functions
+  end
+_G.package.preload['workshop.system.install_assert_functions'] =
+  function(...)
+    local TypeNames = request('!.concepts.lua.TypeNames')
+    local NumberTypeNames = request('!.concepts.lua.NumberTypeNames')
+    local spawn_assert_func =
+      function(type_name)
+        local checker = _G['is_' .. type_name]
+        assert(checker)
+        return
+          function(val)
+            if not checker(val) then
+              local err_msg =
+                string.format('assert_%s(%s)', type_name, tostring(val))
+              error(err_msg)
+            end
+          end
+      end
+    local install_assert_funcs =
+      function()
+        for _, type_name in ipairs(TypeNames) do
+          _G['assert_' .. type_name] = spawn_assert_func(type_name)
+        end
+        for _, number_type_name in ipairs(NumberTypeNames) do
+          _G['assert_' .. number_type_name] =
+            spawn_assert_func(number_type_name)
+        end
+      end
+    return install_assert_funcs
+  end
+_G.package.preload['workshop.lua.regexp.magic_chars'] =
+  function(...)
+    return '^$()[]%.?*+-'
+  end
+_G.package.preload['workshop.lua.regexp.magic_char_pattern'] =
+  function(...)
+    local magic_chars = request('magic_chars')
+    local magic_char_patttern =
+      '[' .. magic_chars:gsub('.', '%%%0') .. ']'
+    return magic_char_patttern
+  end
+_G.package.preload['workshop.lua.regexp.quote'] =
+  function(...)
+    local magic_char_pattern = request('magic_char_pattern')
+    return
+      function(s)
+        return s:gsub(magic_char_pattern, '%%%0')
+      end
+  end
+_G.package.preload['workshop.number.fit_to_range'] =
+  function(...)
+    local Clamp = request('!.number.constrain')
+    local FitToRange =
+      function(Number, Range)
+        return Clamp(Number, Range[1], Range[2])
+      end
+    return FitToRange
+  end
+_G.package.preload['workshop.number.constrain'] =
+  function(...)
+    return
+      function(num, min, max)
+        if (num < min) then
+          return min
+        end
+        if (num > max) then
+          return max
+        end
+        return num
+      end
+  end
+_G.package.preload['workshop.number.in_range'] =
+  function(...)
+    return
+      function(num, min, max)
+        return (num >= min) and (num <= max)
+      end
+  end
+_G.package.preload['workshop.number.map_to_range'] =
+  function(...)
+    local FitToRange = request('!.number.fit_to_range')
+    local MapNumber =
+      function(DestRange, Number, SrcRange)
+        local SrcRangeLen = SrcRange[2] - SrcRange[1]
+        local DestRangeLen = DestRange[2] - DestRange[1]
+        Number = FitToRange(Number, SrcRange)
+        Number = Number - SrcRange[1]
+        Number = Number / SrcRangeLen
+        Number = Number * DestRangeLen
+        Number = Number + DestRange[1]
+        return Number
+      end
+    return MapNumber
+  end
+_G.package.preload['workshop.table.GoAndSet'] =
+  function(...)
+    local go_and_set =
+      function(Node, Path, Value)
+        local Index
+        for i = 1, #Path - 1 do
+          local Index = Path[i]
+          if is_nil(Node[Index]) then
+            Node[Index] = {}
+          end
+          Node = Node[Index]
+        end
+        Index = Path[#Path]
+        Node[Index] = Value
+      end
+    return go_and_set
+  end
+_G.package.preload['workshop.table.clone'] =
+  function(...)
+    local cloned = {}
+    local clone
+    clone =
+      function(node)
+        if (type(node) == 'table') then
+          if cloned[node] then
+            return cloned[node]
+          else
+            local result = {}
+            cloned[node] = result
+            for k, v in pairs(node) do
+              result[clone(k)] = clone(v)
+            end
+            setmetatable(result, getmetatable(node))
+            return result
+          end
+        else
+          return node
+        end
+      end
+    return
+      function(node)
+        cloned = {}
+        return clone(node)
+      end
+  end
+_G.package.preload['workshop.table.new'] =
+  function(...)
+    local clone = request('clone')
+    local patch = request('patch')
+    return
+      function(base_obj, overriden_params)
+        assert_table(base_obj)
+        local result = clone(base_obj)
+        if is_table(overriden_params) then
+          patch(result, overriden_params)
+        end
+        return result
+      end
+  end
+_G.package.preload['workshop.table.patch'] =
+  function(...)
+    local apply_table = request('apply_table')
+    local Rules = { { has_a = true, has_b = true, action = 'replace' } }
+    local patch =
+      function(Result, Additions)
+        apply_table(Result, Additions, Rules)
+      end
+    return patch
+  end
+_G.package.preload['workshop.table.invert'] =
+  function(...)
+    local InvertTable =
+      function(Table)
+        assert_table(Table)
+        local Result = {}
+        for Key, Value in pairs(Table) do
+          Result[Value] = Key
+        end
+        return Result
+      end
+    return InvertTable
+  end
+_G.package.preload['workshop.table.merge_and_patch'] =
+  function(...)
+    local merge = request('merge')
+    local patch = request('patch')
+    local merge_and_patch =
+      function(Dest, Source)
+        merge(Dest, Source)
+        patch(Dest, Source)
+      end
+    return merge_and_patch
+  end
+_G.package.preload['workshop.table.merge'] =
+  function(...)
+    local apply_table = request('apply_table')
+    local Rules =
+      { { has_a = false, has_b = true, action = 'replace' } }
+    local merge =
+      function(Result, Additions)
+        apply_table(Result, Additions, Rules)
+      end
+    return merge
+  end
+_G.package.preload['workshop.table.GoAndGet'] =
+  function(...)
+    return
+      function(t, Path)
+        local Result = t
+        for i = 1, #Path do
+          local Index = Path[i]
+          Result = Result[Index]
+          if is_nil(Result) then
+            return nil
+          end
+        end
+        return Result
+      end
+  end
+_G.package.preload['workshop.table.apply_table'] =
+  function(...)
+    local keep_str = 'keep'
+    local replace_str = 'replace'
+    local remove_str = 'remove'
+    local get_action =
+      function(has_a, has_b, Rules)
+        for _, Rule in ipairs(Rules) do
+          if (Rule.has_a == has_a) and (Rule.has_b == has_b) then
+            return Rule.action
+          end
+        end
+        return keep_str
+      end
+    local apply_table
+    apply_table =
+      function(A, B, Rules)
+        local Keys = {}
+        do
+          for a_key in pairs(A) do
+            Keys[a_key] = true
+          end
+          for b_key in pairs(B) do
+            Keys[b_key] = true
+          end
+        end
+        for key in pairs(Keys) do
+          local a_key = A[key]
+          local b_key = B[key]
+          if is_table(a_key) and is_table(b_key) then
+            apply_table(a_key, b_key, Rules)
+          else
+            local has_a = not is_nil(a_key)
+            local has_b = not is_nil(b_key)
+            local action = get_action(has_a, has_b, Rules)
+            if (action == keep_str) then
+              ;
+            elseif (action == replace_str) then
+              A[key] = B[key]
+            elseif (action == remove_str) then
+              A[key] = nil
+            end
+          end
+        end
+      end
+    local check_rule =
+      function(Rule)
+        local has_a = is_boolean(Rule.has_a)
+        local has_b = is_boolean(Rule.has_b)
+        local action = Rule.action
+        local is_known_action =
+          (action == keep_str) or
+          (action == replace_str) or
+          (action == remove_str)
+        return has_a and has_b and is_known_action
+      end
+    local apply_table_root =
+      function(A, B, Rules)
+        assert_table(A)
+        assert_table(B)
+        assert_table(Rules)
+        assert(A ~= B)
+        for index, Rule in ipairs(Rules) do
+          if not check_rule(Rule) then
+            error('Unsupported rule.')
+          end
+        end
+        apply_table(A, B, Rules)
+      end
+    return apply_table_root
+  end
+_G.package.preload['workshop.file_system.file.open'] =
+  function(...)
+    local normalize_name = request('!.concepts.path_name.normalize')
+    local default_mode = 'rb'
+    local open_file =
+      function(pathname, mode)
+        assert_string(pathname)
+        assert(is_nil(mode) or is_string(mode))
+        pathname = normalize_name(pathname)
+        mode = mode or default_mode
+        local file, err_msg = io.open(pathname, mode)
+        if not file then
+          error(err_msg, 2)
+        end
+        return file
+      end
+    return open_file
+  end
+_G.package.preload['workshop.file_system.file.to_string'] =
+  function(...)
+    local open_file = request('open')
+    local load_file_contents =
+      function(pathname)
+        local File = open_file(pathname, 'rb')
+        local result = File:read('a')
+        File:close()
+        return result
+      end
+    return load_file_contents
+  end
+_G.package.preload['workshop.string.ends_with'] =
+  function(...)
+    local quote_regexp = request('!.lua.regexp.quote')
+    local ends_with =
+      function(base_str, postfix_str)
+        local postfix_pattern = quote_regexp(postfix_str) .. '$'
+        local start_pos = string.find(base_str, postfix_pattern)
+        local result = is_number(start_pos)
+        return result
+      end
+    return ends_with
+  end
+_G.package.preload['workshop.string.split'] =
+  function(...)
+    local ends_with = request('!.string.ends_with')
+    local quote_regexp = request('!.lua.regexp.quote')
+    local add_to_list = request('!.concepts.list.add_item')
+    local split_string =
+      function(str, delimiter)
+        assert_string(str)
+        assert_string(delimiter)
+        if (delimiter == '') then
+          return { str }
+        end
+        if not ends_with(str, delimiter) then
+          str = str .. delimiter
+        end
+        local Result = {}
+        local item_capture = '(.-)' .. quote_regexp(delimiter) .. '()'
+        local start_pos
+        local end_pos
+        local item_str
+        start_pos = 1
+        while true do
+          start_pos, end_pos, item_str =
+            string.find(str, item_capture, start_pos)
+          if not start_pos then
+            break
+          end
+          add_to_list(Result, item_str)
+          start_pos = end_pos + 1
+        end
+        return Result
+      end
+    return split_string
+  end
+_G.package.preload['workshop.convert.file_to_str'] =
+  function(...)
+    return request('!.file_system.file.to_string')
+  end
+_G.package.preload['workshop.concepts.lua.NumberTypeNames'] =
+  function(...)
+    local NumberTypeNames = { 'integer', 'float' }
+    return NumberTypeNames
+  end
+_G.package.preload['workshop.concepts.lua.TypeNames'] =
+  function(...)
+    local TypeNames =
+      {
+        'nil',
+        'boolean',
+        'number',
+        'string',
+        'function',
+        'thread',
+        'userdata',
+        'table',
+      }
+    return TypeNames
+  end
+_G.package.preload['workshop.concepts.list.apply_func'] =
+  function(...)
+    return
+      function(Func, List)
+        assert_function(Func)
+        assert_table(List)
+        for Index = 1, #List do
+          List[Index] = Func(List[Index])
+        end
+        return List
+      end
+  end
+_G.package.preload['workshop.concepts.list.to_string'] =
+  function(...)
+    local to_string =
+      function(List, separator_str)
+        assert_table(List)
+        separator_str = separator_str or ''
+        assert_string(separator_str)
+        return table.concat(List, separator_str)
+      end
+    return to_string
+  end
+_G.package.preload['workshop.concepts.list.add_item'] =
+  function(...)
+    local add_item =
+      function(OurList, item)
+        table.insert(OurList, item)
+      end
+    return add_item
+  end
+_G.package.preload['workshop.concepts.list.add_names'] =
+  function(...)
+    local invert_table = request('!.table.invert')
+    local add_names =
+      function(List, Names)
+        local NamesKeys = invert_table(Names)
+        local get_field_by_name =
+          function(List, name)
+            return rawget(List, NamesKeys[name])
+          end
+        local method_get =
+          function(Table, Key)
+            return get_field_by_name(Table, Key)
+          end
+        local set_field_by_name =
+          function(List, name, Value)
+            local index = NamesKeys[name]
+            if not index then
+              return
+            end
+            rawset(List, index, Value)
+          end
+        local method_set =
+          function(Table, Key, Value)
+            set_field_by_name(Table, Key, Value)
+          end
+        local Metatable =
+          { __index = method_get, __newindex = method_set }
+        setmetatable(List, Metatable)
+      end
+    return add_names
+  end
+_G.package.preload['workshop.concepts.Image.Interface'] =
+  function(...)
+    local GoGet = request('!.table.GoAndGet')
+    local GoSet = request('!.table.GoAndSet')
+    local GetPixel_Dummy =
+      function(self, Path)
+        return GoGet(self.Data, Path)
+      end
+    local SetPixel_Dummy =
+      function(self, Path, Color)
+        return GoSet(self.Data, Path, Color)
+      end
+    return
+      {
+        GetPixel = GetPixel_Dummy,
+        SetPixel = SetPixel_Dummy,
+        Data = {},
+        Settings = request('Settings.Interface'),
+      }
+  end
+_G.package.preload['workshop.concepts.Image.Color.MapTo'] =
+  function(...)
+    local MapToRange = request('!.number.map_to_range')
+    local ApplyFunc = request('!.concepts.list.apply_func')
+    local Generate_Component_MapToRange =
+      function(DestRange, SrcRange)
+        return
+          function(ColorComponent)
+            return MapToRange(DestRange, ColorComponent, SrcRange)
+          end
+      end
+    local MapTo =
+      function(DestRange, Color, SrcRange)
+        local Component_MapToRange =
+          Generate_Component_MapToRange(DestRange, SrcRange)
+        return ApplyFunc(Component_MapToRange, Color)
+      end
+    return MapTo
+  end
+_G.package.preload['workshop.concepts.Image.Color.Denormalize'] =
+  function(...)
+    local MapTo = request('MapTo')
+    local ApplyFunc = request('!.concepts.list.apply_func')
+    local ToInt = math.floor
+    local Denormalize =
+      function(Color)
+        local Eps = 1e-10
+        local DestRange = { 0, 256 - Eps }
+        local SourceRange = { 0.0, 1.0 }
+        MapTo(DestRange, Color, SourceRange)
+        return ApplyFunc(ToInt, Color)
+      end
+    return Denormalize
+  end
+_G.package.preload['workshop.concepts.Image.Color.BlackWhite'] =
+  function(...)
+    return { 0 }
+  end
+_G.package.preload['workshop.concepts.Image.Color.Rgb'] =
+  function(...)
+    local NameList = request('!.concepts.list.add_names')
+    local Color = { 0.0, 0.0, 0.0 }
+    local Names = { 'Red', 'Green', 'Blue' }
+    NameList(Color, Names)
+    return Color
+  end
+_G.package.preload['workshop.concepts.Image.Color.SpawnColor'] =
+  function(...)
+    local RgbColor = request('Rgb')
+    local GsColor = request('Grayscale')
+    local BwColor = request('BlackWhite')
+    local SpawnColor =
+      function(ColorType)
+        if (ColorType == 'rgb') then
+          return new(RgbColor)
+        elseif (ColorType == 'gs') then
+          return new(GsColor)
+        elseif (ColorType == 'bw') then
+          return new(BwColor)
+        else
+          error(('Unknown color format %q.'):format(ColorType))
+        end
+      end
+    return SpawnColor
+  end
+_G.package.preload['workshop.concepts.Image.Color.Grayscale'] =
+  function(...)
+    return { 0.0 }
+  end
+_G.package.preload['workshop.concepts.Image.Settings.Interface'] =
+  function(...)
+    return
+      {
+        Width = 0,
+        Height = 0,
+        ColorFormats = { 'bw', 'gs', 'rgb' },
+        ColorFormat = 'rgb',
+      }
+  end
+_G.package.preload['workshop.concepts.codec_netpbm.compile'] =
+  function(...)
+    local get_image_settings = request('compile.get_image_settings')
+    local Serializer = request('compile.Serializer')
+    local get_format_comment = request('compile.get_format_comment')
+    local get_format_label = request('Settings.get_format_label')
+    local create_color = request('!.concepts.Image.Color.SpawnColor')
+    local denormalize_color =
+      request('!.concepts.Image.Color.Denormalize')
+    local number_in_range = request('!.number.in_range')
+    local add_to_list = request('!.concepts.list.add_item')
+    local list_to_string = request('!.concepts.list.to_string')
+    local write_header =
+      function(ImageSettings, Serializer)
+        local format_label = get_format_label(ImageSettings)
+        local format_comment = get_format_comment(format_label)
+        Serializer:WriteData(format_label)
+        Serializer:WriteComment(format_comment)
+        local width = ImageSettings.width
+        local height = ImageSettings.height
+        local max_channel_value = ImageSettings.max_channel_value
+        local dims_comment = 'Width Height MaxValue'
+        Serializer:WriteData(width)
+        Serializer:WriteData(height)
+        Serializer:WriteData(max_channel_value)
+        Serializer:WriteComment(dims_comment)
+      end
+    local convert_color =
+      function(Color, max_channel_value)
+        denormalize_color(Color)
+        for _, color_component in ipairs(Color) do
+          assert(number_in_range(color_component, 0, max_channel_value))
+        end
+      end
+    local write_data =
+      function(ImageSettings, Image, Serializer)
+        local width = ImageSettings.width
+        local height = ImageSettings.height
+        local num_channels = ImageSettings.num_channels
+        local max_channel_value = ImageSettings.max_channel_value
+        local color_format = Image.Settings.ColorFormat
+        local num_colors_per_data_line
+        if (num_channels == 1) then
+          num_colors_per_data_line = 12
+        elseif (num_channels == 3) then
+          num_colors_per_data_line = 4
+        else
+          error('Unsupported number of color channels.')
+        end
+        local line_comment_fmt = 'Line %d'
+        local columns_delim = '  '
+        local color_component_fmt = '%03d'
+        for y = 1, height do
+          Serializer:WriteNewline()
+          local line_comment = string.format(line_comment_fmt, y)
+          Serializer:WriteComment(line_comment)
+          local is_first_item_in_line = true
+          for x = 1, width do
+            if not is_first_item_in_line then
+              Serializer:WriteRaw(columns_delim)
+            end
+            local ImageColor = Image:GetPixel({ y, x })
+            if is_nil(ImageColor) then
+              ImageColor = create_color(color_format)
+            end
+            local PbmColor = new(ImageColor)
+            convert_color(PbmColor, max_channel_value)
+            for channel = 1, num_channels do
+              local color_component_str =
+                string.format(color_component_fmt, PbmColor[channel])
+              Serializer:WriteData(color_component_str)
+            end
+            is_first_item_in_line = false
+            if (x % num_colors_per_data_line == 0) then
+              Serializer:WriteNewline()
+              is_first_item_in_line = true
+            end
+          end
+          if (width % num_colors_per_data_line ~= 0) then
+            Serializer:WriteNewline()
+          end
+        end
+      end
+    local compile =
+      function(Image, Output)
+        local EncoderImageSettings = get_image_settings(Image)
+        local Serializer = new(Serializer)
+        Serializer.Output = Output
+        write_header(EncoderImageSettings, Serializer)
+        write_data(EncoderImageSettings, Image, Serializer)
+      end
+    return compile
+  end
+_G.package.preload['workshop.concepts.codec_netpbm.Syntels'] =
+  function(...)
+    local AsciiChars = request('!.concepts.Ascii.Chars')
+    local Syntels =
+      {
+        space = AsciiChars.space,
+        tab = AsciiChars.tab,
+        newline = AsciiChars.newline,
+        carriage_return = AsciiChars.carriage_return,
+        comment_char = AsciiChars.number_sign,
+        monochrome_label = 'P1',
+        grayscale_label = 'P2',
+        color_label = 'P3',
+      }
+    return Syntels
+  end
+_G.package.preload[
+  'workshop.concepts.codec_netpbm.compile.get_format_comment'
+] =
+  function(...)
+    local get_format_comment
+    do
+      local FormatComments
+      do
+        local monochrome_label
+        local grayscale_label
+        local color_label
+        do
+          local Syntels = request('^.Syntels')
+          monochrome_label = Syntels.monochrome_label
+          grayscale_label = Syntels.grayscale_label
+          color_label = Syntels.color_label
+        end
+        FormatComments =
+          {
+            [monochrome_label] = 'Monochrome image, text format',
+            [grayscale_label] = 'Grayscale image, text format',
+            [color_label] = 'Color image, text format',
+          }
+      end
+      get_format_comment =
+        function(format_label)
+          local comment = FormatComments[format_label]
+          assert(comment, 'Format label is not found.')
+          return comment
+        end
+    end
+    return get_format_comment
+  end
+_G.package.preload[
+  'workshop.concepts.codec_netpbm.compile.get_image_settings'
+] =
+  function(...)
+    local get_channel_settings =
+      function(color_format)
+        if (color_format == 'bw') then
+          return 1, 1
+        elseif (color_format == 'gs') then
+          return 1, 255
+        elseif (color_format == 'rgb') then
+          return 3, 255
+        end
+        error('Unknown color format.')
+      end
+    local get_image_settings =
+      function(Image)
+        local width = Image.Settings.Width
+        local height = Image.Settings.Height
+        local color_format = Image.Settings.ColorFormat
+        local num_channels, max_channel_value =
+          get_channel_settings(color_format)
+        return
+          {
+            width = width,
+            height = height,
+            num_channels = num_channels,
+            max_channel_value = max_channel_value,
+          }
+      end
+    return get_image_settings
+  end
+_G.package.preload['workshop.concepts.codec_netpbm.compile.Serializer'] =
+  function(...)
+    local Syntels = request('^.Syntels')
+    local newline = Syntels.newline
+    local data_separator = Syntels.space
+    local comment_indent = Syntels.space .. Syntels.space
+    local comment_prefix = Syntels.comment_char .. Syntels.space
+    local Interface =
+      {
+        Output = {},
+        WriteRaw =
+          function(Me, raw_str)
+            Me.Output:Write(raw_str)
+            Me.state = 'init'
+          end,
+        WriteNewline =
+          function(Me)
+            Me:WriteRaw(newline)
+          end,
+        WriteData =
+          function(Me, data_any)
+            local Output = Me.Output
+            if (Me.state == 'wrote_data') then
+              Output:Write(data_separator)
+            end
+            Output:Write(tostring(data_any))
+            Me.state = 'wrote_data'
+          end,
+        WriteComment =
+          function(Me, comment_str)
+            local Output = Me.Output
+            if (Me.state == 'wrote_data') then
+              Output:Write(comment_indent)
+            end
+            Output:Write(comment_prefix)
+            Output:Write(comment_str)
+            Me:WriteNewline()
+          end,
+        state = 'init',
+      }
+    return Interface
+  end
+_G.package.preload[
+  'workshop.concepts.codec_netpbm.Settings.get_format_label'
+] =
+  function(...)
+    local Formats = request('Internals.Formats')
+    local get_format_label =
+      function(GivenSettings)
+        local num_channels = GivenSettings.num_channels
+        local use_text_storage = true
+        local num_channel_values = 256
+        if not is_nil(GivenSettings.num_channel_values) then
+          num_channel_values = GivenSettings.num_channel_values
+        end
+        for _, Rec in ipairs(Formats) do
+          if
+            (Rec.Settings.num_channels == num_channels) and
+            (
+              is_nil(Rec.Settings.num_channel_values) or
+              (Rec.Settings.num_channel_values >= num_channel_values)
+            )
+          then
+            return Rec.label
+          end
+        end
+        error('Format label is not found.')
+      end
+    return get_format_label
+  end
+_G.package.preload[
+  'workshop.concepts.codec_netpbm.Settings.Internals.Formats'
+] =
+  function(...)
+    local Formats
+    do
+      local monochrome_label
+      local grayscale_label
+      local color_label
+      do
+        local Syntels = request('^.^.Syntels')
+        monochrome_label = Syntels.monochrome_label
+        grayscale_label = Syntels.grayscale_label
+        color_label = Syntels.color_label
+      end
+      Formats =
+        {
+          {
+            label = monochrome_label,
+            Settings = { num_channels = 1, num_channel_values = 2 },
+          },
+          { label = grayscale_label, Settings = { num_channels = 1 } },
+          { label = color_label, Settings = { num_channels = 3 } },
+        }
+    end
+    return Formats
+  end
+_G.package.preload['workshop.concepts.Ascii.Chars'] =
+  function(...)
+    local Chars
+    do
+      local Codes = request('Codes')
+      local str_char = string.char
+      Chars = {}
+      for name, code in pairs(Codes) do
+        Chars[name] = str_char(code)
+      end
+    end
+    return Chars
+  end
+_G.package.preload['workshop.concepts.Ascii.Codes'] =
+  function(...)
+    local Codes =
+      {
+        bell = 7,
+        backspace = 8,
+        tab = 9,
+        newline = 10,
+        vertical_tab = 11,
+        form_feed = 12,
+        carriage_return = 13,
+        space = 32,
+        delete = 127,
+        plus = 43,
+        minus = 45,
+        asterisk = 42,
+        slash = 47,
+        less_than = 60,
+        equals = 61,
+        greater_than = 62,
+        dot = 46,
+        comma = 44,
+        colon = 58,
+        semicolon = 59,
+        single_quote = 39,
+        double_quote = 34,
+        backtick = 96,
+        backslash = 92,
+        number_sign = 35,
+        question_mark = 63,
+        bang = 33,
+        percent = 37,
+        ampersand = 38,
+        dollar_sign = 36,
+        at_sign = 64,
+        caret = 94,
+        underscore = 95,
+        pipe = 124,
+        tilde = 126,
+        opening_paren = 40,
+        closing_paren = 41,
+        opening_bracket = 91,
+        closing_bracket = 93,
+        opening_brace = 123,
+        closing_brace = 125,
+      }
+    return Codes
+  end
+_G.package.preload['workshop.concepts.StreamIo.Output.Pipe'] =
+  function(...)
+    local Interface =
+      {
+        Write =
+          function(Me, data_str)
+            assert_string(data_str)
+            assert(data_str ~= '')
+            io.stdout:write(data_str)
+          end,
+      }
+    return Interface
+  end
+_G.package.preload['workshop.concepts.path_name.pathname_to_str'] =
+  function(...)
+    local Syntels = request('Syntels')
+    local list_to_str = request('!.concepts.list.to_string')
+    local sep = Syntels.separator
+    local pathname_to_str =
+      function(Pathname)
+        return list_to_str(Pathname, sep)
+      end
+    return pathname_to_str
+  end
+_G.package.preload['workshop.concepts.path_name.pathname_from_str'] =
+  function(...)
+    local add_to_list = request('!.concepts.list.add_item')
+    local split_string = request('!.string.split')
+    local Syntels = request('Syntels')
+    local sep = Syntels.separator
+    local empty = Syntels.empty
+    local self_dir = Syntels.self_dir
+    local upper_dir = Syntels.upper_dir
+    local pathname_from_str =
+      function(path_name)
+        assert_string(path_name)
+        if (path_name == empty) then
+          error('Empty pathname.')
+        end
+        local Segments = split_string(path_name .. sep, sep)
+        local is_absolute = (Segments[1] == empty)
+        local last_segment = Segments[#Segments]
+        local is_directory =
+          (last_segment == empty) or
+          (last_segment == self_dir) or
+          (last_segment == upper_dir)
+        local Names = {}
+        for _, segment in ipairs(Segments) do
+          if (segment ~= empty) and (segment ~= self_dir) then
+            add_to_list(Names, segment)
+          end
+        end
+        if (#Names == 0) and not is_absolute then
+          add_to_list(Names, self_dir)
+        end
+        local Result = {}
+        if is_absolute then
+          add_to_list(Result, empty)
+        end
+        for _, name in ipairs(Names) do
+          add_to_list(Result, name)
+        end
+        if is_directory then
+          add_to_list(Result, empty)
+        end
+        return Result
+      end
+    return pathname_from_str
+  end
+_G.package.preload['workshop.concepts.path_name.normalize'] =
+  function(...)
+    local pathname_from_str = request('pathname_from_str')
+    local pathname_to_str = request('pathname_to_str')
+    local normalize_name =
+      function(path_name)
+        return pathname_to_str(pathname_from_str(path_name))
+      end
+    return normalize_name
+  end
+_G.package.preload['workshop.concepts.path_name.Syntels'] =
+  function(...)
+    local Syntels =
+      { separator = '/', empty = '', self_dir = '.', upper_dir = '..' }
+    return Syntels
+  end
+_G.package.preload['TracedAnt.Interface'] =
+  function(...)
+    local add_to_list = request('!.concepts.list.add_item')
+    local merge_and_patch_table = request('!.table.merge_and_patch')
+    local Original_Step
+    local Original_Position
+    local InterfaceChanges =
+      {
+        Trace = { Original_Position },
+        Step =
+          function(Me)
+            Original_Step(Me)
+            add_to_list(Me.Trace, new(Me.Position))
+          end,
+      }
+    local Interface
+    do
+      local BlindAnt = request('^.BlindAnt.Interface')
+      Original_Position = BlindAnt.Position
+      Original_Step = BlindAnt.Step
+      Interface = new(BlindAnt)
+      merge_and_patch_table(Interface, InterfaceChanges)
+    end
+    return Interface
+  end
+_G.package.preload['BlindAnt.Interface'] =
+  function(...)
+    local Directions = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } }
+    local Interface =
+      {
+        Step =
+          function(Me)
+            local Direction = Directions[Me.direction]
+            for i = 1, #Me.Position do
+              Me.Position[i] = Me.Position[i] + Direction[i]
+            end
+          end,
+        TurnLeft =
+          function(Me)
+            local direction = Me.direction
+            direction = direction + 1
+            if (direction == 5) then
+              direction = 1
+            end
+            Me.direction = direction
+          end,
+        TurnRight =
+          function(Me)
+            local direction = Me.direction
+            direction = direction - 1
+            if (direction == 0) then
+              direction = 4
+            end
+            Me.direction = direction
+          end,
+        direction = 1,
+        Position = { 0, 0 },
+      }
+    return Interface
+  end
+return require('bin_to_ppm')
