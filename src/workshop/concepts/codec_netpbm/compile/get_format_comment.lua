@@ -2,22 +2,38 @@
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-06-15
+  Last mod.: 2026-08-08
 ]]
 
-local FormatComments =
-  {
-    ['P1'] = 'Monochrome image, text format',
-    ['P2'] = 'Grayscale image, text format',
-    ['P3'] = 'Color image, text format',
-  }
+local get_format_comment
+do
+  local FormatComments
+  do
+    local monochrome_label
+    local grayscale_label
+    local color_label
+    do
+      local Syntels = request('^.Syntels')
+      monochrome_label = Syntels.monochrome_label
+      grayscale_label = Syntels.grayscale_label
+      color_label = Syntels.color_label
+    end
 
-local get_format_comment =
-  function(format_label)
-    local comment = FormatComments[format_label]
-    assert(comment, 'Format label is not found.')
-    return comment
+    FormatComments =
+      {
+        [monochrome_label] = 'Monochrome image, text format',
+        [grayscale_label] = 'Grayscale image, text format',
+        [color_label] = 'Color image, text format',
+      }
   end
+
+  get_format_comment =
+    function(format_label)
+      local comment = FormatComments[format_label]
+      assert(comment, 'Format label is not found.')
+      return comment
+    end
+end
 
 -- Export:
 return get_format_comment
