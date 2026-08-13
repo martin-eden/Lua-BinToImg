@@ -2,7 +2,7 @@
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-08-08
+  Last mod.: 2026-08-10
 ]]
 
 --[[
@@ -30,14 +30,15 @@
 ]]
 
 -- Imports:
-local add_to_list = request('!.concepts.list.add_item')
-local split_string = request('!.string.split')
 local Syntels = request('Syntels')
+local split_string = request('!.string.split')
+local check_is_absolute = request('is_absolute')
+local check_is_directory = request('is_directory')
+local add_to_list = request('!.concepts.list.add_item')
+local add_list = request('!.concepts.list.add_list')
 
-local sep = Syntels.separator
 local empty = Syntels.empty
 local self_dir = Syntels.self_dir
-local upper_dir = Syntels.upper_dir
 
 local pathname_from_str =
   function(path_name)
@@ -47,19 +48,25 @@ local pathname_from_str =
       error('Empty pathname.')
     end
 
-    local Segments = split_string(path_name .. sep, sep)
-
-    local is_absolute = (Segments[1] == empty)
-    local last_segment = Segments[#Segments]
-    local is_directory =
-      (last_segment == empty) or
-      (last_segment == self_dir) or
-      (last_segment == upper_dir)
-
+    local is_absolute
+    local is_directory
     local Names = { }
-    for _, segment in ipairs(Segments) do
-      if (segment ~= empty) and (segment ~= self_dir) then
-        add_to_list(Names, segment)
+
+    do
+      local upper_dir = Syntels.upper_dir
+      local Segments
+      do
+        local sep = Syntels.separator
+        Segments = split_string(path_name .. sep, sep)
+      end
+
+      is_absolute = check_is_absolute(Segments)
+      is_directory = check_is_directory(Segments)
+
+      for _, segment in ipairs(Segments) do
+        if (segment ~= empty) and (segment ~= self_dir) then
+          add_to_list(Names, segment)
+        end
       end
     end
 
@@ -67,21 +74,21 @@ local pathname_from_str =
       add_to_list(Names, self_dir)
     end
 
-    local Result = { }
+    do
+      local Result = { }
 
-    if is_absolute then
-      add_to_list(Result, empty)
+      if is_absolute then
+        add_to_list(Result, empty)
+      end
+
+      add_list(Result, Names)
+
+      if is_directory then
+        add_to_list(Result, empty)
+      end
+
+      return Result
     end
-
-    for _, name in ipairs(Names) do
-      add_to_list(Result, name)
-    end
-
-    if is_directory then
-      add_to_list(Result, empty)
-    end
-
-    return Result
   end
 
 -- Export:
