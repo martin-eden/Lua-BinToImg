@@ -4,7 +4,7 @@
 # Create combined Lua file from sources. Create images for Readme.
 #
 # Author: Martin Eden
-# Last mod.: 2026-08-09
+# Last mod.: 2026-08-13
 #
 
 #
@@ -30,9 +30,6 @@ cd ../src
 rm -r -f workshop/
 
 lua ../builder/create_deploy.lua
-
-bash deploy.sh
-rm deploy.sh
 
 mv deploy/workshop/ .
 rm -r -f deploy/
