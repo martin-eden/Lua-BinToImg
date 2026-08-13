@@ -660,6 +660,14 @@ _G.package.preload['workshop.concepts.list.add_item'] =
       end
     return add_item
   end
+_G.package.preload['workshop.concepts.list.add_list'] =
+  function(...)
+    local add_list =
+      function(OurList, AnotherList)
+        table.move(AnotherList, 1, #AnotherList, #OurList + 1, OurList)
+      end
+    return add_list
+  end
 _G.package.preload['workshop.concepts.list.add_names'] =
   function(...)
     local invert_table = request('!.table.invert')
@@ -1149,46 +1157,52 @@ _G.package.preload['workshop.concepts.path_name.pathname_to_str'] =
   end
 _G.package.preload['workshop.concepts.path_name.pathname_from_str'] =
   function(...)
-    local add_to_list = request('!.concepts.list.add_item')
-    local split_string = request('!.string.split')
     local Syntels = request('Syntels')
-    local sep = Syntels.separator
+    local split_string = request('!.string.split')
+    local check_is_absolute = request('is_absolute')
+    local check_is_directory = request('is_directory')
+    local add_to_list = request('!.concepts.list.add_item')
+    local add_list = request('!.concepts.list.add_list')
     local empty = Syntels.empty
     local self_dir = Syntels.self_dir
-    local upper_dir = Syntels.upper_dir
     local pathname_from_str =
       function(path_name)
         assert_string(path_name)
         if (path_name == empty) then
           error('Empty pathname.')
         end
-        local Segments = split_string(path_name .. sep, sep)
-        local is_absolute = (Segments[1] == empty)
-        local last_segment = Segments[#Segments]
-        local is_directory =
-          (last_segment == empty) or
-          (last_segment == self_dir) or
-          (last_segment == upper_dir)
+        local is_absolute
+        local is_directory
         local Names = {}
-        for _, segment in ipairs(Segments) do
-          if (segment ~= empty) and (segment ~= self_dir) then
-            add_to_list(Names, segment)
+        do
+          local upper_dir = Syntels.upper_dir
+          local Segments
+          do
+            local sep = Syntels.separator
+            Segments = split_string(path_name .. sep, sep)
+          end
+          is_absolute = check_is_absolute(Segments)
+          is_directory = check_is_directory(Segments)
+          for _, segment in ipairs(Segments) do
+            if (segment ~= empty) and (segment ~= self_dir) then
+              add_to_list(Names, segment)
+            end
           end
         end
         if (#Names == 0) and not is_absolute then
           add_to_list(Names, self_dir)
         end
-        local Result = {}
-        if is_absolute then
-          add_to_list(Result, empty)
+        do
+          local Result = {}
+          if is_absolute then
+            add_to_list(Result, empty)
+          end
+          add_list(Result, Names)
+          if is_directory then
+            add_to_list(Result, empty)
+          end
+          return Result
         end
-        for _, name in ipairs(Names) do
-          add_to_list(Result, name)
-        end
-        if is_directory then
-          add_to_list(Result, empty)
-        end
-        return Result
       end
     return pathname_from_str
   end
@@ -1201,6 +1215,32 @@ _G.package.preload['workshop.concepts.path_name.normalize'] =
         return pathname_to_str(pathname_from_str(path_name))
       end
     return normalize_name
+  end
+_G.package.preload['workshop.concepts.path_name.is_absolute'] =
+  function(...)
+    local Syntels = request('Syntels')
+    local empty = Syntels.empty
+    local is_absolute =
+      function(Pathname)
+        return (Pathname[1] == empty)
+      end
+    return is_absolute
+  end
+_G.package.preload['workshop.concepts.path_name.is_directory'] =
+  function(...)
+    local Syntels = request('Syntels')
+    local empty = Syntels.empty
+    local self_dir = Syntels.self_dir
+    local upper_dir = Syntels.upper_dir
+    local is_directory =
+      function(Pathname)
+        local last_node = Pathname[#Pathname]
+        return
+          (last_node == empty) or
+          (last_node == self_dir) or
+          (last_node == upper_dir)
+      end
+    return is_directory
   end
 _G.package.preload['workshop.concepts.path_name.Syntels'] =
   function(...)
