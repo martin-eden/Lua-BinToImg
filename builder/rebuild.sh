@@ -4,7 +4,7 @@
 # Create combined Lua file from sources. Create images for Readme.
 #
 # Author: Martin Eden
-# Last mod.: 2026-08-13
+# Last mod.: 2026-09-26
 #
 
 #
@@ -29,10 +29,10 @@ cd ../src
 
 rm -r -f workshop/
 
-lua ../builder/create_deploy.lua
+lua ../builder/deploy.lua
 
 mv deploy/workshop/ .
-rm -r -f deploy/
+rm -r deploy/
 
 #
 # builder/
@@ -41,18 +41,18 @@ rm -r -f deploy/
 cd ../builder
 
 # ( Combine all Lua code, reformat and strip comments
-./meld ../src/ bin_to_ppm > ../deploy/bin_to_ppm.melded.lua
+./meld ../src/ file_to_img > ../deploy/file_to_img.melded.lua
 
 ./reformat_lua \
-  ../deploy/bin_to_ppm.melded.lua \
-  ../deploy/bin_to_ppm.melded.stripped.lua \
+  ../deploy/file_to_img.melded.lua \
+  ../deploy/file_to_img.melded.stripped.lua \
   --~keep-comments \
   --right-margin=72
-rm ../deploy/bin_to_ppm.melded.lua
+rm ../deploy/file_to_img.melded.lua
 
 mv \
-  ../deploy/bin_to_ppm.melded.stripped.lua \
-  ../deploy/bin_to_ppm.lua
+  ../deploy/file_to_img.melded.stripped.lua \
+  ../deploy/file_to_img.lua
 # )
 
 #
@@ -62,18 +62,24 @@ mv \
 cd ../deploy
 
 # Add shebang to compiled code
-echo '#!/usr/local/bin/lua' > bin_to_ppm.shebanged.lua
-echo >> bin_to_ppm.shebanged.lua
-cat bin_to_ppm.lua >> bin_to_ppm.shebanged.lua
-rm bin_to_ppm.lua
-mv bin_to_ppm.shebanged.lua bin_to_ppm
+echo '#!/usr/local/bin/lua' > file_to_img.shebanged.lua
+echo >> file_to_img.shebanged.lua
+cat file_to_img.lua >> file_to_img.shebanged.lua
+rm file_to_img.lua
+mv file_to_img.shebanged.lua file_to_img
 
-chmod +x bin_to_ppm
+chmod +x file_to_img
 
+#
 # Create images used in "Readme.md"
-cp ../builder/create_readmes_images.sh .
-./create_readmes_images.sh
-rm create_readmes_images.sh
+# (
+rm -r ../extras
+mkdir ../extras
+./file_to_img png /usr/local/bin/lua ../extras/Lua.png
+./file_to_img png ../deploy/file_to_img ../extras/file_to_img.png
+#
+# )
+#
 
 # 2026-06-01
 # 2026-08-09
