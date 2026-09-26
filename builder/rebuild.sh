@@ -4,7 +4,7 @@
 # Create combined Lua file from sources. Create images for Readme.
 #
 # Author: Martin Eden
-# Last mod.: 2026-09-26
+# Last mod.: 2026-09-28
 #
 
 #
@@ -41,18 +41,20 @@ rm -r deploy/
 cd ../builder
 
 # ( Combine all Lua code, reformat and strip comments
-./meld ../src/ file_to_img > ../deploy/file_to_img.melded.lua
+
+./meld ../src/ file_as_img > ../deploy/file_as_img.melded.lua
 
 ./reformat_lua \
-  ../deploy/file_to_img.melded.lua \
-  ../deploy/file_to_img.melded.stripped.lua \
+  ../deploy/file_as_img.melded.lua \
+  ../deploy/file_as_img.melded.stripped.lua \
   --~keep-comments \
   --right-margin=72
-rm ../deploy/file_to_img.melded.lua
+rm ../deploy/file_as_img.melded.lua
 
 mv \
-  ../deploy/file_to_img.melded.stripped.lua \
-  ../deploy/file_to_img.lua
+  ../deploy/file_as_img.melded.stripped.lua \
+  ../deploy/file_as_img.lua
+
 # )
 
 #
@@ -61,25 +63,35 @@ mv \
 
 cd ../deploy
 
-# Add shebang to compiled code
-echo '#!/usr/local/bin/lua' > file_to_img.shebanged.lua
-echo >> file_to_img.shebanged.lua
-cat file_to_img.lua >> file_to_img.shebanged.lua
-rm file_to_img.lua
-mv file_to_img.shebanged.lua file_to_img
+# ( Add shebang to compiled code
 
-chmod +x file_to_img
+echo '#!/usr/local/bin/lua' > file_as_img.shebanged.lua
+echo >> file_as_img.shebanged.lua
+cat file_as_img.lua >> file_as_img.shebanged.lua
+rm file_as_img.lua
+mv file_as_img.shebanged.lua file_as_img
+chmod +x file_as_img
+
+# )
+
+#
+# Create test data
+#
+rm -r ../test/output
+mkdir ../test/output
+./file_as_img export pgm ../test/input.bin ../test/output/test.pgm
+./file_as_img export png ../test/input.bin ../test/output/test.png
+./file_as_img import pgm ../test/output/test.pgm ../test/output/test_from_pgm.bin
+./file_as_img import png ../test/output/test.png ../test/output/test_from_png.bin
 
 #
 # Create images used in "Readme.md"
-# (
-rm -r ../extras
-mkdir ../extras
-./file_to_img png /usr/local/bin/lua ../extras/Lua.png
-./file_to_img png ../deploy/file_to_img ../extras/file_to_img.png
 #
-# )
-#
+# rm -r ../extras
+# mkdir ../extras
+./file_as_img export png /usr/local/bin/lua ../extras/Lua.png
+./file_as_img export png ../deploy/file_as_img ../extras/file_as_img.png
 
 # 2026-06-01
 # 2026-08-09
+# 2026-09-28
