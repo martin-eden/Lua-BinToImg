@@ -2,7 +2,7 @@
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-09-26
+  Last mod.: 2026-09-27
 ]]
 
 -- Uses "ant" moving in spiral path to place data at coordinates
@@ -91,8 +91,8 @@ return
       local Maxs
       Mins, Maxs = get_trace_dims(Trace)
 
-      image_width = Maxs[2] - Mins[2] + 1
-      image_height = Maxs[1] - Mins[1] + 1
+      image_width = Maxs[1] - Mins[1] + 1
+      image_height = Maxs[2] - Mins[2] + 1
     end
 
     local Image =
@@ -109,6 +109,6 @@ return
   end
 
 --[[
-  2026 # # #
-  2026-09-26
+  2026 # # # #
+  2026-09-27
 ]]
