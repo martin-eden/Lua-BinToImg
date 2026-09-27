@@ -1,35 +1,8 @@
-[![DeepWiki][DeepWiki_Logo]][DeepWiki_Repo] will answer your questions
-
-## What
-
 <table>
   <tr>
-    <th colspan=3 align=center>File to image</th>
+    <th colspan=3>File to image</th>
   </tr>
   <tr>
-    <td>
-      <table>
-        <tr>
-          <th>Updated</th>
-          <td>2026-09-26</td>
-        </tr>
-        <tr>
-          <th>Created</th>
-          <td>2026-01</td>
-        </tr>
-        <tr>
-          <th>Code size</th>
-          <td>&lt; 50 K</td>
-        </tr>
-        <tr>
-          <th>License</th>
-          <td>LGPL3</td>
-        </tr>
-      </table>
-    </td>
-    <td align=center>
-      Converts any file to grayscale image.
-    </td>
     <td>
       <table>
         <tr>
@@ -38,24 +11,60 @@
         </tr>
         <tr>
           <td>
-            <code>*</code><br>
+            any file<br>
           </td>
           <td>
             <code>.png</code><br>
             <code>.pgm</code><br>
           </td>
         </tr>
+      </table>
+    </td>
+    <td align=center>
+      Converts any file to grayscale image<br>
+      <br>
+      No data is lost, that's byte-to-pixel conversion.
+    </td>
+    <td>
+      <table>
         <tr>
-          <td colspan=2 align=center>
-            💾<a href="deploy/file_to_img"><code>file_to_img</code></a>
+          <th>Code size</th>
+          <th>💾</th>
+        </tr>
+        <tr>
+          <td align=right>50 K &gt;</td>
+          <td>
+            <a href="deploy/file_to_img"><code>file_to_img</code></a>
           </td>
         </tr>
       </table>
     </td>
   </tr>
+  <tr>
+    <table>
+      <tr>
+        <th>Updated</th>
+        <td>2026-09-27</td>
+      </tr>
+      <tr>
+        <th>Created</th>
+        <td>2026-01</td>
+      </tr>
+      <tr>
+        <th>License</th>
+        <td>LGPL3</td>
+      </tr>
+      <tr>
+        <td colspan=2 align=center>
+          <a href="https://deepwiki.com/martin-eden/Lua-BinToImg">
+            <img src="https://deepwiki.com/badge.svg">
+          </a>
+        </td>
+      </tr>
+    </table>
+  </tr>
 </table>
 
-No data is lost, that's byte-to-pixel conversion.
 
 Lua executable as image:
 
@@ -107,11 +116,6 @@ Repository contains
 * `pnmtopng` tool to convert image to PNG (`$ sudo apt install netpbm`)
 
 
-## Install/remove
-
-* Copy file [`file_to_img`][file_to_img] from `deploy/`.
-
-
 ## Notes
 
 * Practical data file size is several megabytes
@@ -140,9 +144,6 @@ Repository contains
 * [`workshop`][workshop] -- my personal Lua framework
 * [My other projects][contents]
 
-
-[DeepWiki_Logo]: https://deepwiki.com/badge.svg
-[DeepWiki_Repo]: https://deepwiki.com/martin-eden/Lua-BinToImg
 
 [lua_code_img]: extras/Lua.png
 [file_to_img_png]: extras/file_to_img.png
