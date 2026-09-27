@@ -1,35 +1,8 @@
-[![DeepWiki][DeepWiki_Logo]][DeepWiki_Repo] will answer your questions
-
-## What
-
 <table>
   <tr>
-    <th colspan=3 align=center>File to image</th>
+    <th colspan=3>File as image</th>
   </tr>
   <tr>
-    <td>
-      <table>
-        <tr>
-          <th>Updated</th>
-          <td>2026-09-26</td>
-        </tr>
-        <tr>
-          <th>Created</th>
-          <td>2026-01</td>
-        </tr>
-        <tr>
-          <th>Code size</th>
-          <td>&lt; 50 K</td>
-        </tr>
-        <tr>
-          <th>License</th>
-          <td>LGPL3</td>
-        </tr>
-      </table>
-    </td>
-    <td align=center>
-      Converts any file to grayscale image.
-    </td>
     <td>
       <table>
         <tr>
@@ -38,24 +11,63 @@
         </tr>
         <tr>
           <td>
-            <code>*</code><br>
+            any file<br>
+            <code>.png</code><br>
+            <code>.pgm</code><br>
           </td>
           <td>
             <code>.png</code><br>
             <code>.pgm</code><br>
+            any file<br>
           </td>
         </tr>
+      </table>
+    </td>
+    <td align=center>
+      Codec between any file and grayscale image<br>
+      <br>
+      No data is lost, that's byte-to-pixel conversion.
+    </td>
+    <td>
+      <table>
         <tr>
-          <td colspan=2 align=center>
-            💾<a href="deploy/file_to_img"><code>file_to_img</code></a>
+          <th>Code size</th>
+          <th>💾</th>
+        </tr>
+        <tr>
+          <td align=right>60 K &gt;</td>
+          <td>
+            <a href="deploy/file_as_img"><code>file_as_img</code></a>
           </td>
         </tr>
       </table>
     </td>
   </tr>
+  <tr>
+    <table>
+      <tr>
+        <th>Updated</th>
+        <td>2026-09-28</td>
+      </tr>
+      <tr>
+        <th>Created</th>
+        <td>2026-01</td>
+      </tr>
+      <tr>
+        <th>License</th>
+        <td>LGPL3</td>
+      </tr>
+      <tr>
+        <td colspan=2 align=center>
+          <a href="https://deepwiki.com/martin-eden/Lua-BinToImg">
+            <img src="https://deepwiki.com/badge.svg">
+          </a>
+        </td>
+      </tr>
+    </table>
+  </tr>
 </table>
 
-No data is lost, that's byte-to-pixel conversion.
 
 Lua executable as image:
 
@@ -63,17 +75,22 @@ Lua executable as image:
 
 Combined tool code as image:
 
-![Tool executable][file_to_img_png]
+![Tool executable][file_as_img_png]
 
 
 ## Usage
 
 ```
-Converts any file to image
+Converts any file to image. Or converts image to file.
 
 Usage:
 
-  <image_format> <input_file> <output_file>
+  <action> <image_format> <input_file> <output_file>
+
+  <action>: -- what to do. One of:
+
+    export -- encode file as image
+    import -- decode file from image
 
   <image_format>: -- output image format. One of:
 
@@ -86,8 +103,6 @@ Usage:
 
 -- Martin, 2026-09
 ```
-
-Reads given file and writes `.png` or `.pgm` image file.
 
 
 ## Shipment
@@ -104,22 +119,15 @@ Repository contains
 
 * Linux
 * Lua 5.5 (5.4, 5.3) (`$ sudo apt install lua`)
-* `pnmtopng` tool to convert image to PNG (`$ sudo apt install netpbm`)
-
-
-## Install/remove
-
-* Copy file [`file_to_img`][file_to_img] from `deploy/`.
+* `pnmtopng` tool to convert PGM image to PNG (`$ sudo apt install netpbm`)
+* `convert` tool to convert PNG to PGM image (`$ sudo apt-get install imagemagick`)
 
 
 ## Notes
 
 * Practical data file size is several megabytes
 
-  I've tested it on 30 MB file.
-
-  Tool value diminishes with data size.
-  It is not designed to be fast or efficient for large files.
+  I've tested it on 30 MB file. Tool value diminishes with data size.
 
 * This is data exploration tool
 
@@ -128,10 +136,12 @@ Repository contains
 
 * Implementation uses spiral filling
 
-  For spiral filling I wrote ["ant"][Ant] class and coded spiral
-  movement for that ant.
-
   Feel free to experiment with another filling algorithms
+
+* There may be zero bytes after decoded file's data
+
+  That's the property of representing data as image rectangle:
+  you can't store exactly 3 values in 2x2 matrix.
 
 
 ## See also
@@ -141,15 +151,10 @@ Repository contains
 * [My other projects][contents]
 
 
-[DeepWiki_Logo]: https://deepwiki.com/badge.svg
-[DeepWiki_Repo]: https://deepwiki.com/martin-eden/Lua-BinToImg
+[file_as_img]: deploy/file_as_img
 
 [lua_code_img]: extras/Lua.png
-[file_to_img_png]: extras/file_to_img.png
-
-[file_to_img]: deploy/file_to_img
-
-[Ant]: src/BlindAnt/Interface.lua
+[file_as_img_png]: extras/file_as_img.png
 
 [meld]: https://github.com/martin-eden/lua_code_melder
 [workshop]: https://github.com/martin-eden/workshop
