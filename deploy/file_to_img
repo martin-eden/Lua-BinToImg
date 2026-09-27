@@ -1,5 +1,49 @@
 #!/usr/local/bin/lua
 
+package.preload['LeftSpiral'] =
+  function(...)
+    local get_coords =
+      function(Me)
+        return new(Me[1].Position)
+      end
+    local advance =
+      function(Me)
+        local Ant = Me[1]
+        local State = Me[2]
+        local stride_covered = State[1]
+        local stride_length = State[2]
+        local num_turns_done = State[3]
+        if (stride_covered == stride_length) then
+          if (num_turns_done == 2) then
+            stride_length = stride_length + 1
+            num_turns_done = 0
+          else
+            Ant:TurnRight()
+            num_turns_done = num_turns_done + 1
+            stride_covered = 0
+          end
+        end
+        Ant:Step()
+        stride_covered = stride_covered + 1
+        State[1] = stride_covered
+        State[2] = stride_length
+        State[3] = num_turns_done
+      end
+    local Interface
+    local create
+    do
+      local Ant = request('BlindAnt.Interface')
+      local attach_methods = request('!.table.attach_methods')
+      create =
+        function()
+          local Me = { new(Ant), { 0, 1, 0 } }
+          attach_methods(Me, Interface)
+          return Me
+        end
+    end
+    Interface = { create = create, Get = get_coords, Advance = advance }
+    return Interface
+  end
 package.preload['file_to_img'] =
   function(...)
     require('workshop.base')
@@ -65,78 +109,98 @@ Usage:
       os_remove(pgm_name)
     end
   end
+package.preload['str_from_img'] =
+  function(...)
+    local huge = math.huge
+    local SpiralIterator = request('SpiralIterator')
+    local denormalize = request('!.concepts.Image.Color.Denormalize')
+    local tbl_concat = table.concat
+    return
+      function(Image)
+        local width = Image:GetWidth()
+        local height = Image:GetHeight()
+        local area = width * height
+        local Mins = { huge, huge }
+        do
+          local update_mins =
+            function(Coords)
+              for i, coord in ipairs(Coords) do
+                Mins[i] = min(Mins[i], coord)
+              end
+            end
+          local Iterator = SpiralIterator.create()
+          update_mins(Mins, Iterator:Get())
+          for i = 2, area do
+            Iterator:Advance()
+            update_mins(Mins, Iterator:Get())
+          end
+        end
+        local Chars = {}
+        do
+          local add_char_from_coords =
+            function(Coords)
+              local x = Coords[1] - Mins[1] + 1
+              local y = Coords[2] - Mins[2] + 1
+              local Color = Image:GetColor(x, y)
+              denormalize(Color)
+              add_to_list(Chars, str_char(Color[1]))
+            end
+          local Iterator = SpiralIterator.create()
+          add_char_from_coords(Iterator:Get())
+          for i = 2, area do
+            Iterator:Advance()
+            add_char_from_coords(Iterator:Get())
+          end
+        end
+        return tbl_concat(Chars)
+      end
+  end
 package.preload['str_to_img'] =
   function(...)
-    local AntClass = request('TracedAnt.Interface')
-    local move_ant =
-      function(Ant)
-        local stride_length = Ant.State.stride_length
-        local stride_covered = Ant.State.stride_covered
-        local num_turns_done = Ant.State.num_turns_done
-        if (stride_covered == stride_length) then
-          if (num_turns_done == 2) then
-            stride_length = stride_length + 1
-            num_turns_done = 0
-          else
-            Ant:TurnLeft()
-            num_turns_done = num_turns_done + 1
-            stride_covered = 0
-          end
-        end
-        Ant:Step()
-        stride_covered = stride_covered + 1
-        Ant.State.stride_length = stride_length
-        Ant.State.stride_covered = stride_covered
-        Ant.State.num_turns_done = num_turns_done
-      end
-    local get_trace_dims
-    do
-      local min = math.min
-      local max = math.max
-      get_trace_dims =
-        function(Trace)
-          local Mins = {}
-          local Maxs = {}
-          for i = 1, #Trace[1] do
-            Mins[i] = Trace[1][i]
-            Maxs[i] = Trace[1][i]
-          end
-          for i = 2, #Trace do
-            for j = 1, #Trace[i] do
-              local val = Trace[i][j]
-              Mins[j] = min(Mins[j], val)
-              Maxs[j] = max(Maxs[j], val)
-            end
-          end
-          return Mins, Maxs
-        end
-    end
+    local huge = math.huge
+    local min = math.min
+    local max = math.max
+    local LeftSpiral = request('LeftSpiral')
     local ImageClass = request('!.concepts.Image')
     local str_byte = string.byte
     return
       function(data_str)
-        local Ant = new(AntClass)
-        Ant.State =
-          { stride_length = 1, stride_covered = 0, num_turns_done = 0 }
-        for i = 1, #data_str - 1 do
-          move_ant(Ant)
-        end
-        local Trace = Ant.Trace
-        local Mins
-        local image_width
-        local image_height
+        assert_string(data_str)
+        assert(data_str ~= '')
+        local Mins = { huge, huge }
+        local Maxs = { -huge, -huge }
         do
-          local Maxs
-          Mins, Maxs = get_trace_dims(Trace)
-          image_width = Maxs[1] - Mins[1] + 1
-          image_height = Maxs[2] - Mins[2] + 1
+          local update_mins_maxs =
+            function(Coords)
+              for i, coord in ipairs(Coords) do
+                Mins[i] = min(Mins[i], coord)
+                Maxs[i] = max(Maxs[i], coord)
+              end
+            end
+          local CoordsIt = LeftSpiral.create()
+          update_mins_maxs(CoordsIt:Get())
+          for i = 2, #data_str do
+            CoordsIt:Advance()
+            update_mins_maxs(CoordsIt:Get())
+          end
         end
+        local image_width = Maxs[1] - Mins[1] + 1
+        local image_height = Maxs[2] - Mins[2] + 1
         local Image = ImageClass.create(image_width, image_height, 1)
-        for i = 1, #Trace do
-          local Color = { str_byte(data_str, i) / 255 }
-          local x = Trace[i][1] - Mins[1] + 1
-          local y = Trace[i][2] - Mins[2] + 1
-          Image:SetColor(Color, x, y)
+        do
+          local set_pixel =
+            function(Coords, byte_idx)
+              local Color = { str_byte(data_str, byte_idx) / 255 }
+              local x = Coords[1] - Mins[1] + 1
+              local y = Coords[2] - Mins[2] + 1
+              Image:SetColor(Color, x, y)
+            end
+          local CoordsIt = LeftSpiral.create()
+          set_pixel(CoordsIt:Get(), 1)
+          for i = 2, #data_str do
+            CoordsIt:Advance()
+            set_pixel(CoordsIt:Get(), i)
+          end
         end
         return Image
       end
@@ -174,30 +238,6 @@ package.preload['BlindAnt.Interface'] =
         direction = 1,
         Position = { 0, 0 },
       }
-    return Interface
-  end
-package.preload['TracedAnt.Interface'] =
-  function(...)
-    local add_to_list = request('!.concepts.list.add_item')
-    local merge_and_patch_table = request('!.table.merge_and_patch')
-    local Original_Step
-    local InterfaceChanges =
-      {
-        Trace = {},
-        Step =
-          function(Me)
-            Original_Step(Me)
-            add_to_list(Me.Trace, new(Me.Position))
-          end,
-      }
-    local Interface
-    do
-      local BlindAnt = request('^.BlindAnt.Interface')
-      Original_Step = BlindAnt.Step
-      Interface = new(BlindAnt)
-      merge_and_patch_table(Interface, InterfaceChanges)
-      Interface.Trace = { new(BlindAnt.Position) }
-    end
     return Interface
   end
 package.preload['workshop.base'] =
@@ -1506,27 +1546,6 @@ package.preload['workshop.table.create_instance'] =
         attach_methods(Result, Methods)
         return Result
       end
-  end
-package.preload['workshop.table.merge'] =
-  function(...)
-    local Rules =
-      { { has_a = false, has_b = true, action = 'replace' } }
-    local apply_table = request('apply_table')
-    return
-      function(Result, Additions)
-        apply_table(Result, Additions, Rules)
-      end
-  end
-package.preload['workshop.table.merge_and_patch'] =
-  function(...)
-    local merge = request('merge')
-    local patch = request('patch')
-    local merge_and_patch =
-      function(Dest, Source)
-        merge(Dest, Source)
-        patch(Dest, Source)
-      end
-    return merge_and_patch
   end
 package.preload['workshop.table.new'] =
   function(...)
