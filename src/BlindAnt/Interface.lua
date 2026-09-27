@@ -2,7 +2,11 @@
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-06-15
+  Last mod.: 2026-09-28
+]]
+
+--[[
+  Here we're using mathematical axes orientation: Y axis goes up
 ]]
 
 local Directions =
