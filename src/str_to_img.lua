@@ -5,104 +5,65 @@
   Last mod.: 2026-09-27
 ]]
 
--- Uses "ant" moving in spiral path to place data at coordinates
+-- Empty strings are not accepted
 
-local AntClass = request('TracedAnt.Interface')
+local huge = math.huge
+local min = math.min
+local max = math.max
 
--- Move ant by one step on spiral path
-local move_ant =
-  function(Ant)
-    local stride_length = Ant.State.stride_length
-    local stride_covered = Ant.State.stride_covered
-    local num_turns_done = Ant.State.num_turns_done
-
-    if (stride_covered == stride_length) then
-      if (num_turns_done == 2) then
-        stride_length = stride_length + 1
-        num_turns_done = 0
-      else
-        Ant:TurnLeft()
-        num_turns_done = num_turns_done + 1
-        stride_covered = 0
-      end
-    end
-
-    Ant:Step()
-
-    stride_covered = stride_covered + 1
-
-    Ant.State.stride_length = stride_length
-    Ant.State.stride_covered = stride_covered
-    Ant.State.num_turns_done = num_turns_done
-  end
-
-local get_trace_dims
-do
-  local min = math.min
-  local max = math.max
-
-  get_trace_dims =
-    function(Trace)
-      local Mins = { }
-      local Maxs = { }
-
-      for i = 1, #Trace[1] do
-        Mins[i] = Trace[1][i]
-        Maxs[i] = Trace[1][i]
-      end
-
-      for i = 2, #Trace do
-        for j = 1, #Trace[i] do
-          local val = Trace[i][j]
-          Mins[j] = min(Mins[j], val)
-          Maxs[j] = max(Maxs[j], val)
-        end
-      end
-
-      return Mins, Maxs
-    end
-end
-
+local LeftSpiral = request('LeftSpiral')
 local ImageClass = request('!.concepts.Image')
 local str_byte = string.byte
 
 -- Export:
 return
   function(data_str)
-    local Ant = new(AntClass)
+    assert_string(data_str)
+    assert(data_str ~= '')
 
-    Ant.State =
-      {
-        stride_length = 1,
-        stride_covered = 0,
-        num_turns_done = 0,
-      }
+    local Mins = { huge, huge }
+    local Maxs = { -huge, -huge }
 
-    for i = 1, #data_str - 1 do
-      move_ant(Ant)
-    end
-
-    local Trace = Ant.Trace
-
-    local Mins
-    local image_width
-    local image_height
     do
-      local Maxs
-      Mins, Maxs = get_trace_dims(Trace)
+      local update_mins_maxs =
+        function(Coords)
+          for i, coord in ipairs(Coords) do
+            Mins[i] = min(Mins[i], coord)
+            Maxs[i] = max(Maxs[i], coord)
+          end
+        end
 
-      image_width = Maxs[1] - Mins[1] + 1
-      image_height = Maxs[2] - Mins[2] + 1
+      local CoordsIt = LeftSpiral.create()
+
+      update_mins_maxs(CoordsIt:Get())
+      for i = 2, #data_str do
+        CoordsIt:Advance()
+        update_mins_maxs(CoordsIt:Get())
+      end
     end
+
+    local image_width = Maxs[1] - Mins[1] + 1
+    local image_height = Maxs[2] - Mins[2] + 1
 
     local Image =
       ImageClass.create(image_width, image_height, 1)
 
-    for i = 1, #Trace do
-      local Color = { str_byte(data_str, i) / 255 }
-      local x = Trace[i][1] - Mins[1] + 1
-      local y = Trace[i][2] - Mins[2] + 1
-      Image:SetColor(Color, x, y)
+    do
+      local set_pixel =
+        function(Coords, byte_idx)
+          local Color = { str_byte(data_str, byte_idx) / 255 }
+          local x = Coords[1] - Mins[1] + 1
+          local y = Coords[2] - Mins[2] + 1
+          Image:SetColor(Color, x, y)
+        end
+
+      local CoordsIt = LeftSpiral.create()
+
+      set_pixel(CoordsIt:Get(), 1)
+      for i = 2, #data_str do
+        CoordsIt:Advance()
+        set_pixel(CoordsIt:Get(), i)
+      end
     end
 
     return Image

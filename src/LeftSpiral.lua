@@ -2,11 +2,11 @@
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-09-27
+  Last mod.: 2026-09-28
 ]]
 
 --[[
-  Here (unlike [BlindAnt] we're using screen/image axes: Y goes down.
+  Here (unlike [BlindAnt]) we're using screen/image axes: Y goes down.
 ]]
 
 --[[
