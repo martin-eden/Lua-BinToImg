@@ -1,0 +1,8 @@
+P2  # Grayscale image, text format
+3 2 255  # Width Height MaxValue
+
+# Line 1
+010  090  089
+
+# Line 2
+000  087  088
