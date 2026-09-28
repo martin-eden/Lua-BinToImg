@@ -2,7 +2,7 @@
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-09-26
+  Last mod.: 2026-09-28
 ]]
 
 --[[
@@ -23,31 +23,54 @@
 ]]
 
 --
-local Modules = { 'file_to_img' }
+local Modules =
+  {
+    {
+      'file_to_img',
+      { 'pgm', '../test/input.bin', '../test/output/test_.pgm' }
+    },
+    {
+      'file_from_img',
+      { 'pgm', '../test/output/test_.pgm', '../test/output/test_.bin' }
+    },
+    {
+      'file_to_img',
+      { 'png', '../test/input.bin', '../test/output/test_.png' }
+    },
+  }
 --
 package.path = package.path .. ';../../../../?.lua'
 --
-local ModulePaths
-do
-  local observe_modules = require('workshop.system.observe_modules')
-
-  arg[1] = 'png'
-  arg[2] = './file_to_img.lua'
-  arg[3] = '/dev/null'
-  ModulePaths = observe_modules(Modules)
-end
---
-require('workshop.base')
-
 local FilesList
 do
+  local ModulesPaths = { }
+  do
+    local ModulePaths
+    local observe_modules = require('workshop.system.observe_modules')
+
+    for _, ModuleRec in ipairs(Modules) do
+      for i, cmdline_arg in ipairs(ModuleRec[2]) do
+        _G.arg[i] = cmdline_arg
+      end
+      ModulesPaths[#ModulesPaths + 1] = observe_modules({ ModuleRec[1] })
+    end
+  end
+
   local add_to = request('!.concepts.list.add_item')
   FilesList = { }
-  for _, ModuleLoc in ipairs(ModulePaths) do
-    add_to(FilesList, ModuleLoc[2])
+  for _, ModulePaths in ipairs(ModulesPaths) do
+    for _, ModuleLoc in ipairs(ModulePaths) do
+      add_to(FilesList, ModuleLoc[2])
+    end
   end
+
+  local map_values = request('!.table.map_values')
+  local get_keys = request('!.table.get_keys')
+
+  FilesList = get_keys(map_values(FilesList))
 end
 
+require('workshop.base')
 local deploy = request('!.mechs.deploy')
 
 deploy(FilesList)
