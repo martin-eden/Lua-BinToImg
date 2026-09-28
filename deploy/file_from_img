@@ -1905,4 +1905,4 @@ package.preload['workshop.table.patch'] =
         apply_table(Result, Additions, Rules)
       end
   end
-return require('file_to_img')
+return require('file_from_img')
