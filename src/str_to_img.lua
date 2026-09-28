@@ -11,7 +11,7 @@ local huge = math.huge
 local min = math.min
 local max = math.max
 
-local LeftSpiral = request('LeftSpiral')
+local LeftSpiral = request('concepts.LeftSpiral')
 local ImageClass = request('!.concepts.Image')
 local str_byte = string.byte
 
