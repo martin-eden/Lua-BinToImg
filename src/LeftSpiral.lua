@@ -5,28 +5,21 @@
   Last mod.: 2026-09-28
 ]]
 
---[[
-  Here (unlike [BlindAnt]) we're using screen/image axes: Y goes down.
-]]
+-- Here we're using mathematical axes: Y goes up
 
 --[[
   Storage format
 
-    1 [t] -- "blind ant" instance
+    1 [t] -- oriented point instance
     2 [t] -- our spiral state
       1 [i] -- stride covered
       2 [i] -- stride length
       3 [i] -- num turns done
 ]]
 
-local get_coords =
-  function(Me)
-    return new(Me[1].Position)
-  end
-
 local advance =
   function(Me)
-    local Ant = Me[1]
+    local Point = Me[1]
     local State = Me[2]
 
     local stride_covered = State[1]
@@ -38,13 +31,13 @@ local advance =
         stride_length = stride_length + 1
         num_turns_done = 0
       else
-        Ant:TurnRight()
+        Point:TurnRight()
         num_turns_done = num_turns_done + 1
         stride_covered = 0
       end
     end
 
-    Ant:Step()
+    Point:Advance()
 
     stride_covered = stride_covered + 1
 
@@ -56,11 +49,11 @@ local advance =
 local Interface
 local create
 do
-  local Ant = request('BlindAnt.Interface')
+  local Point = request('OrientedPoint')
   local attach_methods = request('!.table.attach_methods')
   create =
     function()
-      local Me = { new(Ant), { 0, 1, 0 } }
+      local Me = { Point.create(), { 0, 1, 0 } }
       attach_methods(Me, Interface)
 
       return Me
@@ -70,8 +63,8 @@ end
 Interface =
   {
     create = create,
-    Get = get_coords,
     Advance = advance,
+    Get = function(Me) return Me[1]:GetPosition() end,
   }
 
 -- Export:
