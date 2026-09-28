@@ -1,8 +1,8 @@
--- Output stream on file
+-- Input stream on file
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-09-26
+  Last mod.: 2026-09-28
 ]]
 
 --[[
@@ -14,10 +14,10 @@
 
 local open
 do
-  local open_for_writing = request('!.file_system.file.open_for_writing')
+  local open_file_for_reading = request('!.file_system.file.open_for_reading')
   open =
     function(Me)
-      Me[2] = open_for_writing(Me[1])
+      Me[2] = open_file_for_reading(Me[1])
     end
 end
 
@@ -30,22 +30,29 @@ do
     end
 end
 
-local write =
-  function(Me, data_str)
-    assert_string(data_str)
+local read
+do
+  local is_natural = request('!.number.is_natural')
+  read =
+    function(Me, num_bytes)
+      assert(is_natural(num_bytes))
 
-    Me[2]:write(data_str)
-  end
+      local data_str = Me[2]:read(num_bytes)
+
+      -- No end-of-file concept in input stream
+      if is_nil(data_str) then data_str = '' end
+
+      return data_str
+    end
+end
 
 local Interface
-
 local create
 do
   local attach_methods = request('!.table.attach_methods')
   create =
     function(pathname)
       assert_string(pathname)
-
       local Me = { pathname, 0 }
       attach_methods(Me, Interface)
 
@@ -60,7 +67,7 @@ Interface =
     Open = open,
     Close = close,
     -- Core:
-    Write = write,
+    Read = read,
   }
 
 -- Export:
@@ -68,6 +75,6 @@ return Interface
 
 --[[
   2024 # # # # #
-  2026 # #
-  2026-09-26
+  2026 #
+  2026-09-28
 ]]
