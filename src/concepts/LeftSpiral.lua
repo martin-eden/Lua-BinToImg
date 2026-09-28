@@ -31,7 +31,7 @@ local advance =
         stride_length = stride_length + 1
         num_turns_done = 0
       else
-        Point:TurnRight()
+        Point:TurnLeft()
         num_turns_done = num_turns_done + 1
         stride_covered = 0
       end
