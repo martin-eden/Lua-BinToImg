@@ -1,9 +1,18 @@
+-- Load string data from image
+
+--[[
+  Author: Martin Eden
+  Last mod.: 2026-09-28
+]]
+
 local huge = math.huge
-local SpiralIterator = request('SpiralIterator')
+local LeftSpiral = request('concepts.LeftSpiral')
+local min = math.min
 local denormalize = request('!.concepts.Image.Color.Denormalize')
+local str_char = string.char
+local add_to_list = request('!.concepts.list.add_item')
 local tbl_concat = table.concat
 
--- Export:
 return
   function(Image)
     local width = Image:GetWidth()
@@ -13,39 +22,47 @@ return
 
     local Mins = { huge, huge }
     do
-      local update_mins =
-        function(Coords)
-          for i, coord in ipairs(Coords) do
-            Mins[i] = min(Mins[i], coord)
-          end
+      local CoordsIt = LeftSpiral.create()
+      for i = 1, area do
+        local Coords = CoordsIt:Get()
+        for dim_i, coord in ipairs(Coords) do
+          Mins[dim_i] = min(Mins[dim_i], coord)
         end
-      local Iterator = SpiralIterator.create()
-
-      update_mins(Mins, Iterator:Get())
-      for i = 2, area do
-        Iterator:Advance()
-        update_mins(Mins, Iterator:Get())
+        CoordsIt:Advance()
       end
     end
 
     local Chars = { }
     do
-      local add_char_from_coords =
-        function(Coords)
-          local x = Coords[1] - Mins[1] + 1
-          local y = Coords[2] - Mins[2] + 1
-          local Color = Image:GetColor(x, y)
-          denormalize(Color)
-          add_to_list(Chars, str_char(Color[1]))
-        end
-      local Iterator = SpiralIterator.create()
+      local CoordsIt = LeftSpiral.create()
 
-      add_char_from_coords(Iterator:Get())
-      for i = 2, area do
-        Iterator:Advance()
-        add_char_from_coords(Iterator:Get())
+      for i = 1, area do
+        local Coords = CoordsIt:Get()
+
+        local x = (Coords[1] - Mins[1]) + 1
+        local y = (height - 1) - (Coords[2] - Mins[2]) + 1
+
+        if
+          not (
+            ((x >= 1) and (x <= width)) and
+            ((y >= 1) and (y <= height))
+          )
+        then
+          break
+        end
+
+        local Color = denormalize(Image:GetColor(x, y))
+
+        add_to_list(Chars, str_char(Color[1]))
+
+        CoordsIt:Advance()
       end
     end
 
     return tbl_concat(Chars)
   end
+
+--[[
+  2026 #
+  2026-09-28
+]]
