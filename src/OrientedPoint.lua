@@ -1,13 +1,11 @@
--- Oriented point on squares grid
+-- Mobile oriented point on squares grid
 
 --[[
   Author: Martin Eden
   Last mod.: 2026-09-28
 ]]
 
---[[
-  Here we're using mathematical axes orientation: Y axis goes up
-]]
+-- Here we're using mathematical axes: Y goes up
 
 --[[
   Storage format
@@ -18,7 +16,7 @@
       2 [i] -- axis Y coordinate
 ]]
 
-local step
+local advance
 do
   local Directions =
     {
@@ -28,7 +26,7 @@ do
       [4] = { 0, -1 },
     }
 
-  step =
+  advance =
     function(Me)
       local Position = Me[2]
       local Direction = Directions[Me[1]]
@@ -77,11 +75,11 @@ end
 Interface =
   {
     create = create,
-    Step = step,
+    Advance = advance,
     TurnLeft = turn_left,
     TurnRight = turn_right,
     GetDirection = function(Me) return Me[1] end,
-    GetPosition = function(Me) return Me[2] end,
+    GetPosition = function(Me) return new(Me[2]) end,
   }
 
 -- Export:
