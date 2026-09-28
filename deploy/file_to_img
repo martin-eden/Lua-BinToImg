@@ -1,49 +1,5 @@
 #!/usr/local/bin/lua
 
-package.preload['LeftSpiral'] =
-  function(...)
-    local get_coords =
-      function(Me)
-        return new(Me[1].Position)
-      end
-    local advance =
-      function(Me)
-        local Ant = Me[1]
-        local State = Me[2]
-        local stride_covered = State[1]
-        local stride_length = State[2]
-        local num_turns_done = State[3]
-        if (stride_covered == stride_length) then
-          if (num_turns_done == 2) then
-            stride_length = stride_length + 1
-            num_turns_done = 0
-          else
-            Ant:TurnRight()
-            num_turns_done = num_turns_done + 1
-            stride_covered = 0
-          end
-        end
-        Ant:Step()
-        stride_covered = stride_covered + 1
-        State[1] = stride_covered
-        State[2] = stride_length
-        State[3] = num_turns_done
-      end
-    local Interface
-    local create
-    do
-      local Ant = request('BlindAnt.Interface')
-      local attach_methods = request('!.table.attach_methods')
-      create =
-        function()
-          local Me = { new(Ant), { 0, 1, 0 } }
-          attach_methods(Me, Interface)
-          return Me
-        end
-    end
-    Interface = { create = create, Get = get_coords, Advance = advance }
-    return Interface
-  end
 package.preload['file_to_img'] =
   function(...)
     require('workshop.base')
@@ -160,7 +116,7 @@ package.preload['str_to_img'] =
     local huge = math.huge
     local min = math.min
     local max = math.max
-    local LeftSpiral = request('LeftSpiral')
+    local LeftSpiral = request('concepts.LeftSpiral')
     local ImageClass = request('!.concepts.Image')
     local str_byte = string.byte
     return
@@ -205,38 +161,118 @@ package.preload['str_to_img'] =
         return Image
       end
   end
-package.preload['BlindAnt.Interface'] =
+package.preload['concepts.LeftSpiral'] =
   function(...)
-    local Directions = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } }
-    local Interface =
+    local advance =
+      function(Me)
+        local Point = Me[1]
+        local State = Me[2]
+        local stride_covered = State[1]
+        local stride_length = State[2]
+        local num_turns_done = State[3]
+        if (stride_covered == stride_length) then
+          if (num_turns_done == 2) then
+            stride_length = stride_length + 1
+            num_turns_done = 0
+          else
+            Point:TurnRight()
+            num_turns_done = num_turns_done + 1
+            stride_covered = 0
+          end
+        end
+        Point:Advance()
+        stride_covered = stride_covered + 1
+        State[1] = stride_covered
+        State[2] = stride_length
+        State[3] = num_turns_done
+      end
+    local Interface
+    local create
+    do
+      local Point = request('OrientedPoint')
+      local attach_methods = request('!.table.attach_methods')
+      create =
+        function()
+          local Me = { Point.create(), { 0, 1, 0 } }
+          attach_methods(Me, Interface)
+          return Me
+        end
+    end
+    Interface =
       {
-        Step =
+        create = create,
+        Advance = advance,
+        Get =
           function(Me)
-            local Direction = Directions[Me.direction]
-            for i = 1, #Me.Position do
-              Me.Position[i] = Me.Position[i] + Direction[i]
-            end
+            return Me[1]:GetPosition()
           end,
-        TurnLeft =
+      }
+    return Interface
+  end
+package.preload['concepts.OrientedPoint'] =
+  function(...)
+    local advance
+    do
+      local Directions =
+        {
+          [1] = { 1, 0 },
+          [2] = { 0, 1 },
+          [3] = { -1, 0 },
+          [4] = { 0, -1 },
+        }
+      advance =
+        function(Me)
+          local Position = Me[2]
+          local Direction = Directions[Me[1]]
+          for i = 1, 2 do
+            Position[i] = Position[i] + Direction[i]
+          end
+          Me[2] = Position
+        end
+    end
+    local turn_left =
+      function(Me)
+        local direction = Me[1]
+        direction = direction + 1
+        if (direction == 5) then
+          direction = 1
+        end
+        Me[1] = direction
+      end
+    local turn_right =
+      function(Me)
+        local direction = Me[1]
+        direction = direction - 1
+        if (direction == 0) then
+          direction = 4
+        end
+        Me[1] = direction
+      end
+    local Interface
+    local create
+    do
+      local attach_methods = request('!.table.attach_methods')
+      create =
+        function()
+          local Me = { 1, { 0, 0 } }
+          attach_methods(Me, Interface)
+          return Me
+        end
+    end
+    Interface =
+      {
+        create = create,
+        Advance = advance,
+        TurnLeft = turn_left,
+        TurnRight = turn_right,
+        GetDirection =
           function(Me)
-            local direction = Me.direction
-            direction = direction + 1
-            if (direction == 5) then
-              direction = 1
-            end
-            Me.direction = direction
+            return Me[1]
           end,
-        TurnRight =
+        GetPosition =
           function(Me)
-            local direction = Me.direction
-            direction = direction - 1
-            if (direction == 0) then
-              direction = 4
-            end
-            Me.direction = direction
+            return new(Me[2])
           end,
-        direction = 1,
-        Position = { 0, 0 },
       }
     return Interface
   end
