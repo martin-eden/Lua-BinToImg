@@ -12,12 +12,18 @@
         <tr>
           <td>
             any file<br>
-            <code>.png</code><br>
-            <code>.pgm</code><br>
           </td>
           <td>
             <code>.png</code><br>
             <code>.pgm</code><br>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>.png</code><br>
+            <code>.pgm</code><br>
+          </td>
+          <td>
             any file<br>
           </td>
         </tr>
@@ -110,7 +116,7 @@ Usage:
 Repository contains
 
   * Compiled code in [`deploy/`](deploy/)
-  * Sample output in [`extras/`](extras/)
+  * Sample output in [`test/`](test/)
   * Complete source code in [`src/`](src/)
   * Rebuild script and tools in [`builder/`](builder/)
 
@@ -120,7 +126,7 @@ Repository contains
 * Linux
 * Lua 5.5 (5.4, 5.3) (`$ sudo apt install lua`)
 * `pnmtopng` tool to convert PGM image to PNG (`$ sudo apt install netpbm`)
-* `convert` tool to convert PNG to PGM image (`$ sudo apt-get install imagemagick`)
+* `convert` tool to convert PNG to PGM image (`$ sudo apt install imagemagick`)
 
 
 ## Notes
