@@ -2,7 +2,7 @@
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-09-27
+  Last mod.: 2026-09-28
 ]]
 
 -- Empty strings are not accepted
@@ -23,22 +23,16 @@ return
 
     local Mins = { huge, huge }
     local Maxs = { -huge, -huge }
-
     do
-      local update_mins_maxs =
-        function(Coords)
-          for i, coord in ipairs(Coords) do
-            Mins[i] = min(Mins[i], coord)
-            Maxs[i] = max(Maxs[i], coord)
-          end
-        end
-
       local CoordsIt = LeftSpiral.create()
 
-      update_mins_maxs(CoordsIt:Get())
-      for i = 2, #data_str do
+      for i = 1, #data_str do
+        local Coords = CoordsIt:Get()
+        for dim_i = 1, 2 do
+          Mins[dim_i] = min(Mins[dim_i], Coords[dim_i])
+          Maxs[dim_i] = max(Maxs[dim_i], Coords[dim_i])
+        end
         CoordsIt:Advance()
-        update_mins_maxs(CoordsIt:Get())
       end
     end
 
@@ -49,20 +43,17 @@ return
       ImageClass.create(image_width, image_height, 1)
 
     do
-      local set_pixel =
-        function(Coords, byte_idx)
-          local Color = { str_byte(data_str, byte_idx) / 255 }
-          local x = Coords[1] - Mins[1] + 1
-          local y = Coords[2] - Mins[2] + 1
-          Image:SetColor(Color, x, y)
-        end
-
       local CoordsIt = LeftSpiral.create()
 
-      set_pixel(CoordsIt:Get(), 1)
-      for i = 2, #data_str do
+      for i = 1, #data_str do
+        local Coords = CoordsIt:Get()
+
+        local Color = { str_byte(data_str, i) / 255 }
+        local x = (Coords[1] - Mins[1]) + 1
+        local y = (image_height - 1) - (Coords[2] - Mins[2]) + 1
+        Image:SetColor(Color, x, y)
+
         CoordsIt:Advance()
-        set_pixel(CoordsIt:Get(), i)
       end
     end
 
