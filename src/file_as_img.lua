@@ -2,7 +2,7 @@
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-09-28
+  Last mod.: 2026-09-30
 ]]
 
 --[[ Develop
@@ -56,70 +56,78 @@ local os_tmpname = os.tmpname
 local os_remove = os.remove
 
 if (action == 'export') then
-  local export_to_pgm
+  local img_from_bin
   do
-    local OutputClass = request('!.concepts.StreamIo.Output.File')
+    local InputFile = request('!.concepts.StreamIo.Input.File')
+    local image_from_stream = request('image_from_stream')
+    local OutputFile = request('!.concepts.StreamIo.Output.File')
     local PamClass = request('!.concepts.codec_netpbm.Pam')
     local save = request('!.concepts.codec_netpbm.compile')
-    export_to_pgm =
-      function(Image, output_file_name)
-        local Output = OutputClass.create(output_file_name)
-        Output:Open()
-
-        -- 2 is grayscale
-        local Pam = PamClass.create_from_image(2, Image)
-        save(Pam, Output)
-
-        Output:Close()
+    img_from_bin =
+      function(output_file_name, input_file_name)
+        local Image
+        do
+          local Input = InputFile.create(input_file_name)
+          Input:Open()
+          Image = image_from_stream(Input)
+          Input:Close()
+        end
+        do
+          local Output = OutputFile.create(output_file_name)
+          Output:Open()
+          -- 2 is grayscale
+          local Pam = PamClass.create_from_image(2, Image)
+          save(Pam, Output)
+          Output:Close()
+        end
       end
   end
 
-  local file_to_str = request('!.convert.file_to_str')
-  local str_to_img = request('str_to_img')
-
-  local Image = str_to_img(file_to_str(input_file_name))
-
   if (format == 'pgm') then
-    export_to_pgm(Image, output_file_name)
+    img_from_bin(output_file_name, input_file_name)
   elseif (format == 'png') then
     local pgm_name = os_tmpname()
 
-    export_to_pgm(Image, pgm_name)
+    img_from_bin(pgm_name, input_file_name)
 
-    local Command = ShellCommand.create({ 'pnmtopng', { pgm_name } })
+    local Command =
+      ShellCommand.create(
+        {
+          'convert',
+          {
+            'pgm:' .. pgm_name,
+            'png:' .. output_file_name,
+          }
+        }
+      )
 
     local is_ok, Result = Command:Execute()
     assert(is_ok, Result.error)
 
-    file_from_str(output_file_name, Result.output)
-
     os_remove(pgm_name)
   end
 elseif (action == 'import') then
-  local import_from_pgm
+  local bin_from_img
   do
-    local InputClass = request('!.concepts.StreamIo.Input.File')
+    local OutputFile = request('!.concepts.StreamIo.Output.File')
+    local InputFile = request('!.concepts.StreamIo.Input.File')
     local load = request('!.concepts.codec_netpbm.parse')
-    import_from_pgm =
-      function(input_file_name)
-        local Input = InputClass.create(input_file_name)
+    local image_to_stream = request('image_to_stream')
+    bin_from_img =
+      function(output_file_name, input_file_name)
+        local Output = OutputFile.create(output_file_name)
+        Output:Open()
+        local Input = InputFile.create(input_file_name)
         Input:Open()
-
-        local Pam = load(Input)
-
+        local Image = load(Input):GetImage()
         Input:Close()
-
-        return Pam:GetImage()
+        image_to_stream(Image, Output)
+        Output:Close()
       end
   end
 
-  local str_from_img = request('str_from_img')
-
   if (format == 'pgm') then
-    file_from_str(
-      output_file_name,
-      str_from_img(import_from_pgm(input_file_name))
-    )
+    bin_from_img(output_file_name, input_file_name)
   elseif (format == 'png') then
     local pgm_name = os_tmpname()
 
@@ -130,7 +138,7 @@ elseif (action == 'import') then
           {
             '-compress',
             'none',
-            input_file_name,
+            'png:' .. input_file_name,
             'pgm:' .. pgm_name,
           }
         }
@@ -139,16 +147,13 @@ elseif (action == 'import') then
     local is_ok, Result = Command:Execute()
     assert(is_ok, Result.error)
 
-    file_from_str(
-      output_file_name,
-      str_from_img(import_from_pgm(pgm_name))
-    )
+    bin_from_img(output_file_name, pgm_name)
 
     os_remove(pgm_name)
   end
 end
 
 --[[
-  2026 # # # #
-  2026-09-28
+  2026 # # # # #
+  2026-09-30
 ]]

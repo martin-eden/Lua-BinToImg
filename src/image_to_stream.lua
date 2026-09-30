@@ -1,21 +1,19 @@
--- Load string data from image
+-- Store image to stream
 
 --[[
   Author: Martin Eden
-  Last mod.: 2026-09-28
+  Last mod.: 2026-09-30
 ]]
 
-local LeftSpiral = request('concepts.LeftSpiral')
 local huge = math.huge
+local LeftSpiral = request('concepts.LeftSpiral')
 local min = math.min
 local max = math.max
 local denormalize = request('!.concepts.Image.Color.Denormalize')
 local str_char = string.char
-local add_to_list = request('!.concepts.list.add_item')
-local tbl_concat = table.concat
 
 return
-  function(Image)
+  function(Image, Output)
     local width = Image:GetWidth()
     local height = Image:GetHeight()
 
@@ -51,7 +49,6 @@ return
       end
     end
 
-    local Chars = { }
     do
       local CoordsIt = LeftSpiral.create()
 
@@ -62,16 +59,14 @@ return
         local y = (height - 1) - (Coords[2] - min_y) + 1
         local Color = denormalize(Image:GetColor(x, y))
 
-        add_to_list(Chars, str_char(Color[1]))
+        Output:Write(str_char(Color[1]))
 
         CoordsIt:Advance()
       end
     end
-
-    return tbl_concat(Chars)
   end
 
 --[[
-  2026 #
-  2026-09-28
+  2026 # #
+  2026-09-30
 ]]
