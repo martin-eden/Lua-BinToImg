@@ -53,7 +53,7 @@
     <table>
       <tr>
         <th>Updated</th>
-        <td>2026-09-28</td>
+        <td>2026-09-30</td>
       </tr>
       <tr>
         <th>Created</th>
@@ -125,8 +125,7 @@ Repository contains
 
 * Linux
 * Lua 5.5 (5.4, 5.3) (`$ sudo apt install lua`)
-* `pnmtopng` tool to convert PGM image to PNG (`$ sudo apt install netpbm`)
-* `convert` tool to convert PNG to PGM image (`$ sudo apt install imagemagick`)
+* `convert` tool to convert PNG between and PGM images (`$ sudo apt install imagemagick`)
 
 
 ## Notes
